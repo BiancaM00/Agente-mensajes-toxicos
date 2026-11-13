@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --color-primary: #2444D8;
+  --color-secondary: #3D5AFE;
+  --color-cyan: #4DB7E5;
+  --color-lime: #7BE53D;
+  --color-bg: #F1F1F1;
+  --color-text-gray: #4A4A4A;
+  --color-white: #FFFFFF;
+  --color-black-soft: #111111;
+
+  --color-paper: var(--color-bg);
+  --color-ink: var(--color-black-soft);
+  --color-accent: var(--color-primary);
+  
+  --color-brand: var(--color-primary);
+  --color-brand-dark: #1A34A8;
+  --color-brand-light: var(--color-secondary);
+}
+
+@layer base {
+  body {
+    @apply font-sans text-black-soft selection:bg-primary selection:text-white;
+    background:
+      radial-gradient(circle at top left, rgba(36, 68, 216, 0.14), transparent 32%),
+      radial-gradient(circle at top right, rgba(61, 90, 254, 0.10), transparent 28%),
+      linear-gradient(180deg, #f8fbff 0%, #f1f4fb 55%, #e9eef9 100%);
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-serif tracking-tight font-normal;
+  }
+
+  button {
+    @apply cursor-pointer transition-[background-color,color,border-color,transform,filter] duration-150;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:active {
+    filter: brightness(1.08) saturate(1.04);
+  }
+}
+
+.editorial-border {
+  @apply border-b border-text-gray/20;
+}
+
+.accent-underline {
+  @apply border-b-2 border-primary;
+}
+
+.mono-label {
+  @apply font-sans uppercase tracking-[0.2em] text-[10px] font-bold text-text-gray;
+}
+
+.btn-cta {
+  @apply bg-gradient-to-r from-primary via-secondary to-brand-dark text-white font-bold rounded-full shadow-2xl;
+}
+.btn-cta {
+  padding: 0.75rem 1.5rem;
+  transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+.btn-cta:hover {
+  transform: translateY(-4px);
+  filter: brightness(1.03);
+}
+
+.hero-gradient-text {
+  background: linear-gradient(90deg,#2444D8,#3D5AFE,#1A34A8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card-hero {
+  @apply rounded-[1.75rem] bg-white/80 backdrop-blur-sm shadow-[0_20px_60px_rgba(36,68,216,0.10)] border border-white/70;
+}
+
+.btn-outline-accent {
+  @apply border border-accent !text-accent px-4 py-1 rounded-md transition-colors bg-white/70;
+}
+
+.glass-strip {
+  background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.58));
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.65);
+  box-shadow: 0 18px 60px rgba(17, 24, 39, 0.08);
+}
+
+.soft-section {
+  background: linear-gradient(180deg, rgba(255,255,255,0.74), rgba(255,255,255,0.92));
+}

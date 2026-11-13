@@ -1,0 +1,4 @@
+<%text>
+${message}
+</%text>
+

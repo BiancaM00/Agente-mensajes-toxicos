@@ -1,0 +1,48 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces/rau-app:cached
+    working_dir: /workspaces/rau-app
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: toxicBase
+      DB_USER: rau_user
+      DB_PASSWORD: rau_secure_password_123
+      APP_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173,http://localhost:8000
+      PYTHONUNBUFFERED: 1
+    command: sleep infinity
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+      - "5173:5173"
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: toxicBase
+      MYSQL_USER: rau_user
+      MYSQL_PASSWORD: rau_secure_password_123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  mysql_data:

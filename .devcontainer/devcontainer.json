@@ -1,0 +1,50 @@
+{
+  "name": "RAU - Detector de Mensajes Toxicos",
+  "dockerComposeFile": [
+    "docker-compose.devcontainer.yml"
+  ],
+  "service": "app",
+  "runServices": [
+    "mysql",
+    "app"
+  ],
+  "workspaceFolder": "/workspaces/rau-app",
+  "shutdownAction": "stopCompose",
+  "overrideCommand": false,
+  "forwardPorts": [
+    8000,
+    3000,
+    5173
+  ],
+  "portsAttributes": {
+    "8000": {
+      "label": "FastAPI backend",
+      "onAutoForward": "ignore"
+    },
+    "3000": {
+      "label": "Frontend (legacy)",
+      "onAutoForward": "ignore"
+    },
+    "5173": {
+      "label": "Frontend Vite",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && cd frontend && npm install && cd ..",
+  "postStartCommand": "sh .devcontainer/dev-start.sh",
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.terminal.activateEnvironment": false,
+        "files.eol": "\n"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}
