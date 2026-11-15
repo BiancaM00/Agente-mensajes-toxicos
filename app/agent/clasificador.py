@@ -35,7 +35,7 @@ CATEGORIAS = [
 # ==========================================================
 
 def limitar(valor: float) -> float:
-    """Limita un valor al intervalo entre 0 y 1."""
+    """Limita un valor al intervalo de 0 a 1."""
     return max(0.0, min(1.0, float(valor)))
 
 
@@ -57,9 +57,8 @@ def obtener_score_toxicidad(prediccion: dict) -> float:
 
 
 # ==========================================================
-# 3. COMBINACIÓN DE SEÑALES
+# 3. CLASIFICACIÓN Y COMBINACIÓN DE SEÑALES
 # ==========================================================
-
 
 def combinar_senales(
     texto: str,
@@ -69,10 +68,13 @@ def combinar_senales(
     aggressive: float,
 ) -> dict[str, float]:
     """
-    Combina modelos de IA y reglas de moderación.
+    Combina las señales de los modelos de IA con reglas.
 
-    Los resultados son puntajes heurísticos.
-    No son probabilidades calibradas.
+    Clasifica en insulto, acoso, amenaza, odio, spam
+    y ninguna.
+
+    Los resultados son puntuaciones heurísticas,
+    no probabilidades calibradas.
     """
 
     texto = normalizar_texto(texto)
@@ -82,13 +84,68 @@ def combinar_senales(
     targeted = limitar(targeted)
     aggressive = limitar(aggressive)
 
-    # Reconocer insultos con y sin tilde
+    # ------------------------------------------------------
+    # 3.1. DETECCIÓN DE CONTEXTO ACADÉMICO
+    # ------------------------------------------------------
+
+    # Ejemplo:
+    # "La palabra idiota es un ejemplo de insulto."
+
+    patron_definicion = (
+        r"(?:la palabra|el t[eé]rmino)\s+"
+        r"\w+\s+"
+        r"(?:es|constituye|representa)\s+"
+        r"(?:un|una)\s+ejemplo\s+de\s+"
+        r"(?:insulto|amenaza)\.?"
+    )
+
+    # Ejemplo:
+    # "El profesor explicó por qué está mal decir
+    # te voy a golpear."
+
+    patron_explicacion = (
+        r"(?:el profesor|la profesora|"
+        r"el docente|la docente)\s+"
+        r"(?:explic[oó]|coment[oó]|dijo)\s+"
+        r".*?"
+        r"(?:est[aá] mal|no debemos)\s+"
+        r"decir\s+[\w\sáéíóúñ]+[.!]?"
+    )
+
+    contexto_academico = (
+        toxicidad < 0.20
+        and (
+            re.fullmatch(patron_definicion, texto)
+            or re.fullmatch(patron_explicacion, texto)
+        )
+    )
+
+    # Evitar falsos positivos en estos patrones
+    # académicos específicos.
+    if contexto_academico:
+        return {
+            "insulto": 0.0,
+            "acoso": 0.0,
+            "amenaza": 0.0,
+            "odio": 0.0,
+            "spam": 0.0,
+            "ninguna": 1.0,
+        }
+
+    # ------------------------------------------------------
+    # 3.2. DETECCIÓN DE INSULTOS
+    # ------------------------------------------------------
+
+    # Reconoce variantes masculinas, femeninas
+    # y palabras con o sin tilde.
+
     patron_insulto = (
-        r"\b("
-        r"idiota|imbécil|imbecil|"
-        r"estúpido|estupido|"
-        r"tonto|tonta|"
-        r"inútil|inutil"
+        r"\b(?:"
+        r"idiota|"
+        r"imb[eé]cil|"
+        r"est[uú]pid[oa]s?|"
+        r"tont[oa]s?|"
+        r"in[uú]til(?:es)?"
         r")\b"
     )
 
@@ -96,14 +153,23 @@ def combinar_senales(
         re.search(patron_insulto, texto)
     )
 
-    # Reconocer amenazas y sustituciones como "voy 4 matar"
+    # ------------------------------------------------------
+    # 3.3. DETECCIÓN DE AMENAZAS
+    # ------------------------------------------------------
+
+    # Reconoce:
+    # "Te voy a golpear"
+    # "Te voy a pegar"
+    # "Te rompo la cara"
+    # "Te voy 4 matar"
+
     patron_amenaza = (
-        r"\b("
-        r"te voy (?:a|4) (?:matar|golpear|hacer daño)"
-        r"|te mato"
-        r"|te golpeo"
-        r"|voy a matarte"
-        r"|voy a golpearte"
+        r"\b(?:"
+        r"te voy (?:a|4) "
+        r"(?:matar|golpear|pegar|hacer daño)"
+        r"|te (?:mato|golpeo|pego)"
+        r"|voy a (?:matarte|golpearte|pegarte)"
+        r"|te rompo (?:la|tu) cara"
         r")\b"
     )
 
@@ -111,17 +177,90 @@ def combinar_senales(
         re.search(patron_amenaza, texto)
     )
 
-    # Combinar señales
+    # ------------------------------------------------------
+    # 3.4. DETECCIÓN DE POSIBLE ACOSO
+    # ------------------------------------------------------
+
+    # Identificar referencias a comportamientos repetidos.
+
+    patron_repeticion = (
+        r"\b(?:"
+        r"llevo semanas|"
+        r"cada vez que|"
+        r"todos los d[ií]as"
+        r")\b"
+    )
+
+    # Verbos asociados con hostigamiento.
+
+    patron_hostigamiento = (
+        r"\b(?:"
+        r"burl[a-záéíóúñ]+|"
+        r"humill[a-záéíóúñ]+|"
+        r"molest[a-záéíóúñ]+|"
+        r"acos[a-záéíóúñ]+"
+        r")\b"
+    )
+
+    posible_acoso = bool(
+        re.search(patron_repeticion, texto)
+        and re.search(patron_hostigamiento, texto)
+    )
+
+    # ------------------------------------------------------
+    # 3.5. REFERENCIAS A GRUPOS
+    # ------------------------------------------------------
+
+    # Esta regla complementa RoBERTuito.
+    # Mencionar un grupo NO implica automáticamente odio.
+
+    patron_grupos = (
+        r"\b(?:"
+        r"mujer(?:es)?|"
+        r"hombres?|"
+        r"inmigrantes?|"
+        r"extranjer[oa]s?|"
+        r"discapacitados?|"
+        r"religiones?|"
+        r"etnias?"
+        r")\b"
+    )
+
+    referencia_grupal = bool(
+        re.search(patron_grupos, texto)
+    )
+
+    # ------------------------------------------------------
+    # 3.6. COMBINAR SEÑALES
+    # ------------------------------------------------------
+
     resultados = {
         "insulto": max(
-            0.85 if es_insulto else 0.0,
+            0.90 if es_insulto else 0.0,
             toxicidad * targeted,
         ),
-        "acoso": targeted * aggressive,
-        "amenaza": 0.95 if es_amenaza else 0.0,
-        "odio": hateful,
-        "spam": 0.95 if es_spam(texto) else 0.0,
+
+        "acoso": max(
+            0.93 if posible_acoso else 0.0,
+            targeted * aggressive * 0.25,
+        ),
+
+        "amenaza": (
+            0.97 if es_amenaza else 0.0
+        ),
+
+        "odio": (
+            hateful
+            if referencia_grupal
+            else hateful * 0.25
+        ),
+
+        "spam": (
+            0.95 if es_spam(texto) else 0.0
+        ),
     }
+
+    # Calcular la ausencia de señales relevantes.
     resultados["ninguna"] = limitar(
         1.0 - max(resultados.values())
     )
@@ -129,18 +268,15 @@ def combinar_senales(
     return resultados
 
 
-
 # ==========================================================
-# 4. CARGA DE LOS MODELOS DE IA
+# 4. CARGA DE LOS MODELOS DE INTELIGENCIA ARTIFICIAL
 # ==========================================================
 
 @lru_cache(maxsize=1)
 def cargar_modelos():
     """
-    Carga DistilBERT y RoBERTuito.
-
-    Los modelos se cargan una sola vez por proceso
-    para evitar repetir la inicialización.
+    Carga DistilBERT y RoBERTuito una sola vez
+    por proceso para reutilizarlos en los análisis.
     """
 
     print("Cargando DistilBERT...")
@@ -167,7 +303,7 @@ def cargar_modelos():
 
 
 # ==========================================================
-# 5. ANÁLISIS COMPLETO DEL MENSAJE
+# 5. ANÁLISIS COMPLETO DE UN MENSAJE
 # ==========================================================
 
 def analizar_mensaje(
@@ -175,21 +311,24 @@ def analizar_mensaje(
     explicar: bool = False,
 ) -> dict:
     """
-    Analiza un mensaje con ambos modelos.
+    Analiza un mensaje utilizando ambos modelos.
 
-    Incluye:
+    Devuelve:
     - Texto normalizado.
     - Categoría principal.
     - Puntajes por categoría.
-    - Toxicidad de DistilBERT.
+    - Puntuación de toxicidad.
     - Señales de RoBERTuito.
     - Fragmentos explicativos opcionales.
     """
 
-    # 1. Normalizar el mensaje
+    # ------------------------------------------------------
+    # 5.1. NORMALIZACIÓN
+    # ------------------------------------------------------
+
     texto_normalizado = normalizar_texto(texto)
 
-    # 2. Manejar mensajes vacíos
+    # Manejar mensajes vacíos.
     if not texto_normalizado:
         return {
             "texto_normalizado": "",
@@ -207,10 +346,16 @@ def analizar_mensaje(
             "fragmentos": [],
         }
 
-    # 3. Cargar los modelos
+    # ------------------------------------------------------
+    # 5.2. CARGAR LOS MODELOS
+    # ------------------------------------------------------
+
     modelo_toxicidad, modelo_odio = cargar_modelos()
 
-    # 4. Ejecutar DistilBERT
+    # ------------------------------------------------------
+    # 5.3. ANÁLISIS CON DISTILBERT
+    # ------------------------------------------------------
+
     resultado_toxicidad = modelo_toxicidad(
         texto_normalizado,
         truncation=True,
@@ -220,7 +365,10 @@ def analizar_mensaje(
         resultado_toxicidad
     )
 
-    # 5. Ejecutar RoBERTuito
+    # ------------------------------------------------------
+    # 5.4. ANÁLISIS CON ROBERTUITO
+    # ------------------------------------------------------
+
     resultados_odio = modelo_odio(
         texto_normalizado,
         top_k=None,
@@ -228,11 +376,13 @@ def analizar_mensaje(
     )
 
     puntuaciones_odio = {
-        resultado["label"].lower(): float(resultado["score"])
+        resultado["label"].lower(): float(
+            resultado["score"]
+        )
         for resultado in resultados_odio
     }
 
-    # Validar las etiquetas del modelo
+    # Comprobar que estén todas las etiquetas.
     etiquetas_requeridas = {
         "hateful",
         "targeted",
@@ -240,16 +390,20 @@ def analizar_mensaje(
     }
 
     etiquetas_faltantes = (
-        etiquetas_requeridas - puntuaciones_odio.keys()
+        etiquetas_requeridas
+        - puntuaciones_odio.keys()
     )
 
     if etiquetas_faltantes:
         raise ValueError(
-            f"Faltan etiquetas de RoBERTuito: "
+            "Faltan etiquetas de RoBERTuito: "
             f"{etiquetas_faltantes}"
         )
 
-    # 6. Combinar las señales de los modelos
+    # ------------------------------------------------------
+    # 5.5. COMBINACIÓN DE RESULTADOS
+    # ------------------------------------------------------
+
     puntajes = combinar_senales(
         texto=texto_normalizado,
         toxicidad=toxicidad,
@@ -258,25 +412,38 @@ def analizar_mensaje(
         aggressive=puntuaciones_odio["aggressive"],
     )
 
-    # 7. Identificar la categoría principal
+    # ------------------------------------------------------
+    # 5.6. CATEGORÍA PRINCIPAL
+    # ------------------------------------------------------
+
     categoria_principal = max(
         puntajes,
         key=puntajes.get,
     )
 
-    # 8. Preparar la explicación
+    # ------------------------------------------------------
+    # 5.7. EXPLICACIÓN MEDIANTE OCLUSIÓN
+    # ------------------------------------------------------
+
     fragmentos = []
 
     if explicar:
+        # Importación local para evitar dependencias
+        # circulares entre clasificador y explicador.
         from app.agent.explicador import explicar_toxicidad
 
         resultado_explicacion = explicar_toxicidad(
             texto_normalizado
         )
 
-        fragmentos = resultado_explicacion["fragmentos"]
+        fragmentos = resultado_explicacion[
+            "fragmentos"
+        ]
 
-    # 9. Devolver el resultado completo
+    # ------------------------------------------------------
+    # 5.8. RESULTADO FINAL
+    # ------------------------------------------------------
+
     return {
         "texto_normalizado": texto_normalizado,
         "categoria_principal": categoria_principal,

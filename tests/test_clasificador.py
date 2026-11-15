@@ -13,7 +13,7 @@ def test_detectar_amenaza():
         aggressive=0.06,
     )
 
-    assert resultado["amenaza"] == 0.95
+    assert resultado["amenaza"] == 0.97
     assert resultado["amenaza"] == max(resultado.values())
 
 
@@ -26,7 +26,7 @@ def test_detectar_insulto():
         aggressive=0.01,
     )
 
-    assert resultado["insulto"] == 0.85
+    assert resultado["insulto"] == 0.90
     assert resultado["insulto"] == max(resultado.values())
 
 
