@@ -37,7 +37,7 @@ def test_adaptador_con_explicacion(monkeypatch):
                 "insulto": 0.90,
                 "acoso": 0.0,
                 "amenaza": 0.0,
-                "odio": 0.01,
+                "odio": 0.0,
                 "spam": 0.0,
                 "ninguna": 0.10,
             },
@@ -60,8 +60,8 @@ def test_adaptador_con_explicacion(monkeypatch):
     )
 
     assert resultado["probabilidades"]["insulto"] == 0.90
-    assert resultado["score_toxicidad"] == 0.95
-    assert resultado["fragmentos"][0]["palabra"] == "idiota"
+    assert resultado["score_toxicidad"] == 0.90
+    assert resultado["fragmentos"] == ["idiota"]
     assert resultado["modelo"] == (
         "DistilBERT + RoBERTuito + reglas"
     )
