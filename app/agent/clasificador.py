@@ -60,6 +60,7 @@ def obtener_score_toxicidad(prediccion: dict) -> float:
 # 3. COMBINACIÓN DE SEÑALES
 # ==========================================================
 
+
 def combinar_senales(
     texto: str,
     toxicidad: float,
@@ -68,9 +69,9 @@ def combinar_senales(
     aggressive: float,
 ) -> dict[str, float]:
     """
-    Combina las señales de IA con reglas de moderación.
+    Combina modelos de IA y reglas de moderación.
 
-    Devuelve puntuaciones heurísticas por categoría.
+    Los resultados son puntajes heurísticos.
     No son probabilidades calibradas.
     """
 
@@ -81,32 +82,39 @@ def combinar_senales(
     targeted = limitar(targeted)
     aggressive = limitar(aggressive)
 
-    # Detectar insultos explícitos
+    # Reconocer insultos con y sin tilde
+    patron_insulto = (
+        r"\b("
+        r"idiota|imbécil|imbecil|"
+        r"estúpido|estupido|"
+        r"tonto|tonta|"
+        r"inútil|inutil"
+        r")\b"
+    )
+
     es_insulto = bool(
-        re.search(
-            r"\b(idiota|imbécil|estúpido|tonto|inútil)\b",
-            texto,
-        )
+        re.search(patron_insulto, texto)
     )
 
-    # Detectar amenazas explícitas
+    # Reconocer amenazas y sustituciones como "voy 4 matar"
+    patron_amenaza = (
+        r"\b("
+        r"te voy (?:a|4) (?:matar|golpear|hacer daño)"
+        r"|te mato"
+        r"|te golpeo"
+        r"|voy a matarte"
+        r"|voy a golpearte"
+        r")\b"
+    )
+
     es_amenaza = bool(
-        re.search(
-            r"\b("
-            r"te voy a (matar|golpear|hacer daño)"
-            r"|te mato"
-            r"|te golpeo"
-            r"|voy a matarte"
-            r"|voy a golpearte"
-            r")\b",
-            texto,
-        )
+        re.search(patron_amenaza, texto)
     )
 
-    # Construir los puntajes por categoría
+    # Combinar señales
     resultados = {
         "insulto": max(
-            0.85 if es_insulto and toxicidad >= 0.5 else 0.0,
+            0.85 if es_insulto else 0.0,
             toxicidad * targeted,
         ),
         "acoso": targeted * aggressive,
@@ -114,13 +122,12 @@ def combinar_senales(
         "odio": hateful,
         "spam": 0.95 if es_spam(texto) else 0.0,
     }
-
-    # Puntaje de ausencia de señales
     resultados["ninguna"] = limitar(
         1.0 - max(resultados.values())
     )
 
     return resultados
+
 
 
 # ==========================================================
