@@ -10,6 +10,7 @@ import Login from './views/Login';
 import Dashboard from './views/Dashboard';
 import Register from './views/Register';
 import { clearSession, getStoredSession } from './services/auth';
+import { Toaster } from 'sonner';
 
 export type UserRole = 'admin' | 'docente' | 'estudiante';
 type ViewState = 'landing' | 'login' | 'dashboard' | 'register-student' | 'register-teacher';
@@ -43,6 +44,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen overflow-x-hidden">
+      <Toaster position="top-right" richColors closeButton />
       <AnimatePresence mode="wait">
         {view === 'landing' && (
           <motion.div
