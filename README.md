@@ -1,49 +1,114 @@
-# Agente Moderador RAU
+﻿# Agente Moderador RAU
 
-Agente inteligente que analiza cada mensaje antes de publicarlo en los foros académicos y decide qué hacer: **publicar, publicar con aviso, pedir reescritura o retener para revisión del docente**. Recuerda el historial de cada estudiante y aprende de las decisiones del docente.
+Agente inteligente para la moderación de mensajes en foros académicos. Analiza las publicaciones de los estudiantes, identifica posibles mensajes tóxicos y determina acciones de moderación según el contenido y el historial de comportamiento.
 
-Proyecto final de **Inteligencia Artificial (NRC 1228)** – Universidad Tecnológica de Bolívar.
-Parte del detector de mensajes tóxicos desarrollado en Ingeniería de Software.
+Proyecto de Inteligencia Artificial, NRC 1228 – Universidad Tecnológica de Bolívar.
 
-## Cómo funciona
+## 1. Objetivo
 
-```
-percibir → normalizar → clasificar → recordar → decidir → actuar → aprender
-```
+Promover una comunicación respetuosa en los foros académicos mediante un agente inteligente que apoye la detección y moderación de mensajes inadecuados, sin impedir la expresión de críticas académicas respetuosas.
 
-## Equipo
+## 2. Arquitectura y funcionamiento
 
-| Integrante | Rol | Rama |
-|---|---|---|
-| Ana Cerro Pérez | Núcleo del agente (backend) | `feature/agente` |
-| Sara Vargas Vasquez | Percepción y NLP | `feature/nlp` |
-| Sofía Mejía González | Interfaz del agente (frontend) | `feature/frontend-agente` |
-| Bianca Mastrascusa Camargo | Datos, evaluación y aprendizaje | `feature/evaluacion` |
+El agente sigue este flujo:
 
-Profesora: Yuranis Henriquez Núñez · Sustentación: 19 de noviembre de 2026
+Percibir → Normalizar → Clasificar → Recordar → Decidir → Actuar → Aprender.
 
-## Tecnologías
+- **Percepción:** recibe el mensaje publicado por el estudiante.
+- **Normalización:** prepara el texto para su análisis.
+- **Clasificación:** analiza el contenido mediante los componentes de procesamiento de lenguaje natural.
+- **Memoria:** consulta el historial y las reincidencias del estudiante.
+- **Decisión:** evalúa el resultado y determina la acción correspondiente.
+- **Acción:** permite publicar, advertir, solicitar una reescritura o retener el mensaje para revisión docente, según las reglas implementadas.
+- **Aprendizaje:** registra las decisiones y permite considerar la retroalimentación docente.
 
-FastAPI · MySQL · React + Vite · Hugging Face Transformers
+## 3. Funcionalidades
 
-## Cómo correrlo
+- Análisis automático de mensajes.
+- Detección de contenido potencialmente tóxico.
+- Tratamiento de amenazas y reincidencias.
+- Diferenciación entre críticas respetuosas y mensajes ofensivos.
+- Aplicación de acciones de moderación.
+- Registro persistente de decisiones.
+- Historial de decisiones del agente.
+- Notificaciones relacionadas con la moderación.
+- Métricas para el seguimiento de la actividad del agente.
+- Control de acceso según roles y permisos.
 
-**Backend**
-```
+## 4. Tecnologías
+
+- Python.
+- FastAPI.
+- SQLAlchemy.
+- MySQL.
+- Alembic.
+- React y Vite.
+- Hugging Face Transformers.
+- Pytest.
+
+## 5. Instalación y ejecución
+
+### Backend
+
+Crear y activar el entorno virtual:
+
+```bash
 python -m venv venv
 venv\Scripts\activate
+```
+
+Instalar dependencias:
+
+```bash
 pip install -r requirements.txt
-copy .env.example .env
+```
+
+Configurar las variables de entorno utilizando `.env.example` como referencia y completar los valores correspondientes.
+
+Ejecutar el servidor:
+
+```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Frontend**
-```
+### Frontend
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Estado
+## 6. Documentación de la API
 
-🚧 En desarrollo: adaptando el detector original a un agente inteligente.
+Con el backend en ejecución, consultar:
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+Allí se pueden consultar los endpoints disponibles, sus parámetros y respuestas.
+
+## 7. Pruebas automatizadas
+
+Ejecutar la suite de pruebas:
+
+```bash
+python -m pytest -q
+```
+
+Durante la validación del proyecto se obtuvo un resultado de 18 pruebas aprobadas.
+
+## 8. Equipo de desarrollo
+
+| Integrante | Responsabilidad |
+|---|---|
+| Ana Cerro Pérez | Núcleo del agente y backend |
+| Sara Vargas Vasquez | Percepción y procesamiento NLP |
+| Sofía Mejía González | Interfaz del agente |
+| Bianca Mastrascusa Camargo | Datos, evaluación y aprendizaje |
+
+**Docente:** Yuranis Henriquez Núñez.
+
+**Institución:** Universidad Tecnológica de Bolívar.
+
+**Asignatura:** Inteligencia Artificial – NRC 1228.
