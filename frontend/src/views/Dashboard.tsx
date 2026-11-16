@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { getStoredSession } from '../services/auth';
 import Laboratorio from './Laboratorio';
 import { BookOpen, Code2, Calculator, Scale, Database, BrainCircuit, CalendarDays, Eye, Minus, FlaskConical } from 'lucide-react';
-import { Card, KpiCard, RiskBadge, StatusBadge, ScoreBar, Avatar, ActivityArea, RiskDonut, CourseBars, Gauge, ScoreLine, RISK_COLOR, HeroIllustration, WeekStrip } from '../components/ui';
+import { Card, KpiCard, RiskBadge, StatusBadge, ScoreBar, Avatar, ActivityArea, RiskDonut, CourseBars, Gauge, ScoreLine, RISK_COLOR, HeroIllustration, WeekStrip, TextoResaltado, extraerFragmentos } from '../components/ui';
 
 interface DashboardProps {
   userRole: UserRole | null;
@@ -49,6 +49,7 @@ interface PublicacionItem {
   autor_id: number;
   estado: string;
   creado_en?: string;
+  autor?: { nombre?: string };
 }
 
 interface EnrollmentItem {
@@ -71,7 +72,7 @@ interface AdminUserItem {
 }
 
 export default function Dashboard({ userRole, onLogout }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'courses' | 'settings'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'courses' | 'settings' | 'status' | 'profile' | 'lab'>(() => {
     return userRole === 'estudiante' ? 'courses' : 'overview';
   });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -524,7 +525,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
     const notifIntervalId = window.setInterval(loadUnreadNotifications, 10000);
     const incidentsIntervalId = window.setInterval(() => {
       refreshIncidents();
-      if (userRole !== 'estudiante') {
+      if ((userRole as string) !== 'estudiante') {
         api.getMetricasGlobales().then(res => {
           if (res?.success) setGlobalMetrics(res.data);
         }).catch(e => console.error('Error loading global metrics', e));
@@ -552,7 +553,11 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
             riesgo: p.evaluacion_toxicidad?.riesgo || 'BAJO',
             course: p.hilo?.foro?.curso?.nombre || 'Curso',
             status: p.estado || 'PENDIENTE_REVISION',
-            date: p.creado_en
+            date: p.creado_en,
+            // Datos del agente (aparecen cuando el backend de Ana los envíe)
+            fragmentos: p.decision_agente?.fragmentos || p.evaluacion_toxicidad?.fragmentos || [],
+            explicacion: p.decision_agente?.explicacion || p.evaluacion_toxicidad?.explicacion || '',
+            accion: p.decision_agente?.accion || '',
           }));
         setRecentIncidents(mapped);
       } else if (userRole === 'estudiante') {
@@ -684,7 +689,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                 <button onClick={handleToggleNotifications} className="relative h-10 w-10 rounded-full bg-white flex items-center justify-center text-slate-500 hover:text-accent shadow-sm transition-colors" title="Ver notificaciones">
                   <Bell size={18} />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white ring-2 ring-white">
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E5675F] px-1.5 text-[10px] font-bold text-white ring-2 ring-white">
                       {unreadNotifications}
                     </span>
                   )}
@@ -836,7 +841,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                         const destacado = incident.id === maxScoreId;
                         const lvl = String(incident.riesgo || 'BAJO').toUpperCase();
                         return (
-                          <tr key={incident.id} className={destacado ? 'bg-red-50/70 text-slate-800 shadow-[inset_4px_0_0_#DC2626]' : 'border-b border-slate-50 text-slate-700 hover:bg-slate-50'}>
+                          <tr key={incident.id} className={destacado ? 'bg-red-50/70 text-slate-800 shadow-[inset_4px_0_0_#E5675F]' : 'border-b border-slate-50 text-slate-700 hover:bg-slate-50'}>
                             <td className="px-6 py-3">
                               <div className="flex items-center gap-3">
                                 <Avatar name={incident.user} size={30} />
@@ -977,8 +982,19 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                         </div>
 
                         <blockquote className="rounded-xl bg-slate-50 border border-slate-100 px-5 py-4 text-[16px] leading-relaxed text-slate-800">
-                          “{incident.message}”
+                          “<TextoResaltado texto={incident.message} fragmentos={incident.fragmentos?.length ? incident.fragmentos : extraerFragmentos(incident.explicacion)} />”
                         </blockquote>
+
+                        <div className="mt-3 flex items-start gap-3 rounded-xl bg-[#EEF2FF]/70 px-4 py-3">
+                          <Sparkles size={16} className="mt-0.5 shrink-0 text-[#2444D8]" />
+                          <div className="text-[13px] leading-relaxed text-slate-700">
+                            <span className="font-semibold text-[#2444D8]">Por qué lo retuvo el agente: </span>
+                            {incident.explicacion
+                              ? incident.explicacion
+                              : `estimó ${Math.round((incident.score || 0) * 100)}% de toxicidad (riesgo ${lvl.toLowerCase()}) y lo dejó pendiente para tu revisión.`}
+                            {incident.accion && <span className="ml-2 inline-flex rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">Acción: {String(incident.accion).replace(/_/g, ' ').toLowerCase()}</span>}
+                          </div>
+                        </div>
 
                         <div className="mt-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                           <div className="flex items-center gap-3 lg:w-80">
@@ -1001,11 +1017,12 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                                 toast.success('Publicación rechazada', { description: 'Se notificó al autor.' });
                                 await refreshIncidents();
                               } catch (e) { console.error(e); toast.error('No se pudo rechazar la publicación'); }
-                            }} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-700 shadow-sm shadow-red-600/20 transition-colors">
+                            }} className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-semibold text-red-600 hover:bg-red-100 transition-colors">
                               <Trash2 size={16} /> Rechazar
                             </button>
                           </div>
                         </div>
+                        <p className="mt-3 text-[11px] text-slate-400">Tu decisión queda registrada y el agente aprende de ella para ajustar sus próximas decisiones.</p>
                       </div>
                     </motion.div>
                   ); })
@@ -1055,7 +1072,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                         {userRole === 'admin' && <p className="text-[12px] text-slate-500 mt-1">Profesor: {course.teacher || 'Sin asignar'}</p>}
                         <div className="mt-5 flex items-center justify-between">
                           {userRole !== 'estudiante' && inc !== undefined
-                            ? <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${inc > 5 ? 'bg-red-50 text-red-700 ring-red-600/20' : inc > 2 ? 'bg-amber-50 text-amber-700 ring-amber-600/25' : 'bg-green-50 text-green-700 ring-green-600/20'}`}>{inc} incidentes</span>
+                            ? <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${inc > 5 ? 'bg-red-50/70 text-red-600 ring-red-200' : inc > 2 ? 'bg-amber-50 text-amber-700 ring-amber-600/25' : 'bg-green-50 text-green-700 ring-green-600/20'}`}>{inc} incidentes</span>
                             : <span className="inline-flex items-center gap-1.5 text-[12px] text-slate-500"><MessageSquare size={14} /> Foros del curso</span>}
                           <span className="text-[13px] font-semibold text-accent flex items-center gap-1 opacity-70 group-hover:opacity-100">Entrar <ChevronRight size={15} className="group-hover:translate-x-1 transition-transform" /></span>
                         </div>
@@ -1192,7 +1209,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
             <motion.div key="status" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card title="Índice de convivencia" subtitle="Porcentaje de tus mensajes publicados sin problemas">
-                  <Gauge value={studentSafetyIndex} label="mensajes sin alertas" color={studentSafetyIndex >= 80 ? '#16A34A' : studentSafetyIndex >= 50 ? '#F59E0B' : '#DC2626'} />
+                  <Gauge value={studentSafetyIndex} label="mensajes sin alertas" color={studentSafetyIndex >= 80 ? '#16A34A' : studentSafetyIndex >= 50 ? '#F59E0B' : '#E5675F'} />
                 </Card>
                 <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-5 content-start">
                   <KpiCard icon={<Send size={18} />} label="Mensajes enviados" value={String(studentMessagesSent)} hint="En todos tus cursos" />
@@ -1415,13 +1432,19 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
-                            className="mb-6 rounded-2xl border border-amber-300/70 bg-amber-50 px-5 py-4 text-amber-900 shadow-sm"
+                            className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/80 px-5 py-4 text-amber-900 shadow-sm"
                           >
                             <div className="flex items-start gap-3">
-                              <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
+                              <span className="h-9 w-9 shrink-0 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center"><AlertTriangle size={18} /></span>
                               <div className="flex-1">
-                                <p className="font-display text-lg leading-tight">Mensaje no publicado</p>
-                                <p className="mt-1 text-sm leading-relaxed opacity-90">{postWarning}</p>
+                                <p className="font-display text-[16px] font-semibold leading-tight">Tu mensaje no se publicó</p>
+                                <p className="mt-1 text-[14px] leading-relaxed text-amber-900/90">{postWarning}</p>
+                                {extraerFragmentos(postWarning).length > 0 && newPostContent && (
+                                  <p className="mt-2 rounded-lg bg-white/80 px-3 py-2 text-[14px] text-slate-700">
+                                    “<TextoResaltado texto={newPostContent} fragmentos={extraerFragmentos(postWarning)} />”
+                                  </p>
+                                )}
+                                <p className="mt-2 text-[12px] text-amber-800/80">Puedes estar en desacuerdo con una idea; lo que no se permite es atacar a las personas. Ajusta el tono y vuelve a intentarlo.</p>
                               </div>
                               <button
                                 onClick={() => setShowWarning(false)}

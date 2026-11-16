@@ -15,7 +15,7 @@ export const COLORS = {
   cyan: '#4DB7E5',
   good: '#16A34A',
   warn: '#F59E0B',
-  bad: '#DC2626',
+  bad: '#E5675F',
   grid: '#E5E9F5',
   axis: '#94A3B8',
 };
@@ -54,7 +54,7 @@ export function KpiCard({ icon, label, value, hint, tone = 'brand' }: {
     brand: 'bg-[#2444D8]/10 text-[#2444D8]',
     good: 'bg-green-600/10 text-green-700',
     warn: 'bg-amber-500/15 text-amber-700',
-    bad: 'bg-red-600/10 text-red-700',
+    bad: 'bg-red-50 text-red-500',
     cyan: 'bg-sky-500/10 text-sky-700',
   };
   return (
@@ -73,7 +73,7 @@ export function KpiCard({ icon, label, value, hint, tone = 'brand' }: {
 export function RiskBadge({ level }: { level?: string }) {
   const l = String(level || 'BAJO').toUpperCase();
   const map: Record<string, string> = {
-    ALTO: 'bg-red-50 text-red-700 ring-red-600/20',
+    ALTO: 'bg-red-50/70 text-red-600 ring-red-200',
     MEDIO: 'bg-amber-50 text-amber-700 ring-amber-600/25',
     BAJO: 'bg-green-50 text-green-700 ring-green-600/20',
   };
@@ -92,7 +92,7 @@ export function StatusBadge({ status }: { status?: string }) {
     APROBADO: ['Publicado', 'bg-green-50 text-green-700 ring-green-600/20'],
     PENDIENTE_REVISION: ['En revisión', 'bg-amber-50 text-amber-700 ring-amber-600/25'],
     PENDIENTE_ANALISIS: ['En análisis', 'bg-sky-50 text-sky-700 ring-sky-600/20'],
-    RECHAZADO: ['Rechazado', 'bg-red-50 text-red-700 ring-red-600/20'],
+    RECHAZADO: ['Rechazado', 'bg-red-50/70 text-red-600 ring-red-200'],
   };
   const [label, cls] = map[s] || [status || '—', 'bg-slate-100 text-slate-600 ring-slate-500/20'];
   return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${cls}`}>{label}</span>;
@@ -272,7 +272,7 @@ export function HeroIllustration() {
         {/* burbuja retenida */}
         <rect x="48" y="96" width="100" height="26" rx="9" fill="#FEE2E2" />
         <rect x="58" y="106" width="52" height="6" rx="3" fill="#FCA5A5" />
-        <circle cx="136" cy="109" r="7" fill="#DC2626" />
+        <circle cx="136" cy="109" r="7" fill="#E5675F" />
         <path d="M133 106l6 6M139 106l-6 6" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
       </g>
       {/* escudo del agente */}
@@ -315,4 +315,27 @@ export function WeekStrip() {
       </div>
     </div>
   );
+}
+
+/* ─── Texto con las palabras señaladas por el agente resaltadas ─── */
+export function TextoResaltado({ texto, fragmentos }: { texto: string; fragmentos: string[] }) {
+  const limpios = (fragmentos || []).map(f => f.trim()).filter(Boolean);
+  if (!limpios.length) return <>{texto}</>;
+  const escapar = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const partes = texto.split(new RegExp(`(${limpios.map(escapar).join('|')})`, 'gi'));
+  return (
+    <>
+      {partes.map((p, i) =>
+        limpios.some(f => f.toLowerCase() === p.toLowerCase())
+          ? <mark key={i} className="rounded bg-red-50 px-1 text-red-600 font-semibold ring-1 ring-red-100">{p}</mark>
+          : <span key={i}>{p}</span>
+      )}
+    </>
+  );
+}
+
+/** Saca las palabras que el agente pone entre «» en su explicación: «idiota, estupidez» → ['idiota', 'estupidez'] */
+export function extraerFragmentos(explicacion: string): string[] {
+  const m = (explicacion || '').match(/«([^»]+)»/);
+  return m ? m[1].split(',').map(s => s.trim()).filter(Boolean) : [];
 }

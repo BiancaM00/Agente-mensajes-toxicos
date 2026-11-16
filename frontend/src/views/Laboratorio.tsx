@@ -22,15 +22,15 @@ const ACCIONES: Record<Accion, { nombre: string; clase: string; barra: string }>
   PUBLICAR: { nombre: 'Publicar', clase: 'bg-green-50 text-green-700 ring-green-600/20', barra: '#16A34A' },
   PUBLICAR_CON_AVISO: { nombre: 'Publicar con aviso', clase: 'bg-lime-50 text-lime-700 ring-lime-600/20', barra: '#65A30D' },
   PEDIR_REESCRITURA: { nombre: 'Pedir reescritura', clase: 'bg-amber-50 text-amber-700 ring-amber-600/25', barra: '#F59E0B' },
-  RETENER: { nombre: 'Retener para revisión', clase: 'bg-red-50 text-red-700 ring-red-600/20', barra: '#DC2626' },
-  RETENER_URGENTE: { nombre: 'Retener y notificar urgente', clase: 'bg-rose-100 text-rose-800 ring-rose-700/25', barra: '#9F1239' },
+  RETENER: { nombre: 'Retener para revisión', clase: 'bg-red-50/70 text-red-600 ring-red-200', barra: '#E5675F' },
+  RETENER_URGENTE: { nombre: 'Retener y notificar urgente', clase: 'bg-rose-50 text-rose-700 ring-rose-200', barra: '#C26B7A' },
 };
 
 const CATEGORIAS: Array<{ id: keyof RespuestaAgente['probabilidades']; nombre: string; color: string }> = [
   { id: 'ninguna', nombre: 'Ninguna (sano)', color: '#16A34A' },
-  { id: 'insulto', nombre: 'Insulto', color: '#DC2626' },
-  { id: 'acoso', nombre: 'Acoso', color: '#E11D48' },
-  { id: 'amenaza', nombre: 'Amenaza', color: '#9F1239' },
+  { id: 'insulto', nombre: 'Insulto', color: '#E5675F' },
+  { id: 'acoso', nombre: 'Acoso', color: '#EC8A9C' },
+  { id: 'amenaza', nombre: 'Amenaza', color: '#C26B7A' },
   { id: 'odio', nombre: 'Odio / discriminación', color: '#7C3AED' },
   { id: 'spam', nombre: 'Spam', color: '#64748B' },
 ];
@@ -44,7 +44,7 @@ function TextoResaltado({ texto, fragmentos }: { texto: string; fragmentos: stri
     <>
       {partes.map((p, i) =>
         fragmentos.some(f => f.toLowerCase() === p.toLowerCase())
-          ? <mark key={i} className="rounded bg-red-100 px-1 text-red-700 font-semibold">{p}</mark>
+          ? <mark key={i} className="rounded bg-red-50 px-1 text-red-600 font-semibold ring-1 ring-red-100">{p}</mark>
           : <span key={i}>{p}</span>
       )}
     </>
