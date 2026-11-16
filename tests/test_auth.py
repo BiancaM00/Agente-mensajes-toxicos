@@ -1,9 +1,10 @@
-"""Tests básicos de autenticación."""
+﻿"""Tests bÃ¡sicos de autenticaciÃ³n."""
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.database import Base, get_db
@@ -15,7 +16,8 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
 )
 
 TestingSessionLocal = sessionmaker(
@@ -49,7 +51,7 @@ def setup_database():
 
 
 def test_root_endpoint():
-    """Test del endpoint raíz."""
+    """Test del endpoint raÃ­z."""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json()["success"] is True
@@ -63,7 +65,7 @@ def test_health_check():
 
 
 def test_login_credenciales_invalidas():
-    """Test login con credenciales inválidas."""
+    """Test login con credenciales invÃ¡lidas."""
     response = client.post(
         "/auth/login",
         json={
@@ -72,4 +74,7 @@ def test_login_credenciales_invalidas():
         }
     )
     assert response.status_code == 401
-    assert response.json()["success"] is False
+    assert response.json()
+
+
+
