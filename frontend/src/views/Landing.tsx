@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
-import { Shield, MessageSquare, Layout, Sparkles, CheckCircle2, ChevronRight, Menu, X } from 'lucide-react';
+import { Shield, MessageSquare, Sparkles, ChevronRight, Menu, X, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
+import { HeroIllustration } from '../components/ui';
 
 interface LandingProps {
   onNavigate: (view: 'login' | 'dashboard' | 'landing' | 'register-student' | 'register-teacher') => void;
@@ -14,22 +15,19 @@ export default function Landing({ onNavigate }: LandingProps) {
       title: "IA Avanzada",
       description: "Moderación en tiempo real utilizando algoritmos de vanguardia para un entorno libre de acoso.",
       icon: Sparkles,
-      color: "bg-purple-100 text-purple-600",
-      borderColor: "border-purple-200"
+      color: "bg-violet-50 text-violet-600",
     },
     {
       title: "Gestión de Foros",
       description: "Organiza tus cursos y debates con una interfaz intuitiva centrada en el aprendizaje.",
       icon: MessageSquare,
-      color: "bg-teal-100 text-teal-600",
-      borderColor: "border-teal-200"
+      color: "bg-teal-50 text-teal-600",
     },
     {
       title: "Moderación",
       description: "Herramientas de control total para docentes y administradores de la red académica.",
       icon: Shield,
-      color: "bg-amber-100 text-amber-600",
-      borderColor: "border-amber-200"
+      color: "bg-amber-50 text-amber-600",
     }
   ];
 
@@ -40,57 +38,51 @@ export default function Landing({ onNavigate }: LandingProps) {
     { id: 4, title: "Aprobación", desc: "El docente valida la publicación final." }
   ];
 
+  const navItems = ['Learn', 'Grow', 'Play', 'Explore'];
+
   return (
-    <div className="min-h-screen text-ink selection:bg-accent selection:text-white relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 opacity-90" style={{ background: 'radial-gradient(circle at 15% 10%, rgba(36,68,216,0.16), transparent 24%), radial-gradient(circle at 85% 15%, rgba(61,90,254,0.12), transparent 26%), radial-gradient(circle at 80% 85%, rgba(36,68,216,0.08), transparent 22%)' }} />
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full glass-strip z-50 editorial-border">
+    <div className="min-h-screen bg-[#F3F5FB] text-slate-900 selection:bg-accent selection:text-white">
+      {/* Navegación */}
+      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur border-b border-slate-200/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-serif font-black tracking-tighter">
-                STUDIO RAU
-              </span>
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-[#2444D8] text-white flex items-center justify-center shadow-md shadow-accent/30"><ShieldCheck size={18} /></div>
+              <span className="font-display text-[20px] font-bold tracking-tight">STUDIO RAU</span>
             </div>
 
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-10">
-              {['Learn', 'Grow', 'Play', 'Explore'].map(item => (
-                <button key={item} className="mono-label hover:opacity-100 transition-opacity">
+            <div className="hidden md:flex items-center gap-8">
+              {navItems.map(item => (
+                <button key={item} className="text-[14px] font-medium text-slate-500 hover:text-slate-900 transition-colors">
                   {item}
                 </button>
               ))}
-              <button 
+              <button
                 onClick={() => onNavigate('login')}
-                className="btn-cta mono-label !text-[10px]"
+                className="rounded-xl bg-[#2444D8] text-white text-[14px] font-semibold px-5 py-2 shadow-md shadow-accent/25 hover:brightness-110 transition"
               >
                 Acceder
               </button>
             </div>
 
-            {/* Mobile menu button */}
             <div className="md:hidden">
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600">
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-600">
                 {isMenuOpen ? <X /> : <Menu />}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile menu */}
         {isMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="md:hidden bg-white border-b border-gray-100 p-4 flex flex-col gap-4 text-center"
+            className="md:hidden bg-white border-b border-slate-100 p-4 flex flex-col gap-3 text-center"
           >
-            <a href="#" className="text-gray-600">Learn</a>
-            <a href="#" className="text-gray-600">Grow</a>
-            <a href="#" className="text-gray-600">Play</a>
-            <a href="#" className="text-gray-600">Explore</a>
-            <button 
+            {navItems.map(item => <a key={item} href="#" className="text-slate-600 py-1">{item}</a>)}
+            <button
               onClick={() => onNavigate('login')}
-              className="btn-cta mono-label !text-[10px]"
+              className="rounded-xl bg-[#2444D8] text-white text-[14px] font-semibold px-5 py-2.5"
             >
               Acceder
             </button>
@@ -98,129 +90,147 @@ export default function Landing({ onNavigate }: LandingProps) {
         )}
       </nav>
 
-      {/* Hero Section */}
-      <header className="relative pt-32 pb-24 overflow-hidden border-b border-ink/5 soft-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+      {/* Hero */}
+      <header className="pt-28 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <motion.span
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 rounded-full bg-[#EEF2FF] text-[#2444D8] text-[12px] font-semibold px-3 py-1"
+            >
+              <Sparkles size={14} /> Seguridad Académica 2026
+            </motion.span>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mt-6 font-display text-5xl md:text-[64px] font-bold leading-[1.05] tracking-tight"
+            >
+              Esencia <span className="text-[#2444D8]">Académica.</span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-600"
+            >
+              Creamos experiencias académicas seguras. Elegancia, precisión y un enfoque radical en el comportamiento digital.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-8 flex flex-wrap gap-3"
+            >
+              <button
+                onClick={() => onNavigate('login')}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#2444D8] text-white text-[14px] font-semibold px-6 py-3 shadow-lg shadow-accent/25 hover:-translate-y-0.5 transition-transform"
+              >
+                Iniciar sesión <ChevronRight size={16} />
+              </button>
+              <button
+                onClick={() => onNavigate('register-student')}
+                className="rounded-xl bg-white text-slate-700 text-[14px] font-semibold px-6 py-3 border border-slate-200 hover:border-accent/40 hover:text-accent transition-colors"
+              >
+                Soy estudiante
+              </button>
+              <button
+                onClick={() => onNavigate('register-teacher')}
+                className="rounded-xl bg-white text-slate-700 text-[14px] font-semibold px-6 py-3 border border-slate-200 hover:border-accent/40 hover:text-accent transition-colors"
+              >
+                Soy docente
+              </button>
+            </motion.div>
+          </div>
+
+          {/* Tarjeta visual */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mono-label mb-8 block accent-underline inline-block pb-1 px-4 py-2 rounded-full bg-white/70"
-          >
-            Seguridad Académica 2026
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-6xl md:text-[100px] font-serif font-light leading-[0.9] mb-12 tracking-[-0.04em] hero-gradient-text"
-          >
-            Esencia <br className="hidden md:block" />
-            <span className="italic font-serif font-normal">Académica.</span>
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="max-w-2xl mx-auto text-xl leading-relaxed opacity-80 mb-12"
+            className="relative"
           >
-            Creamos experiencias académicas seguras. Elegancia, precisión y un enfoque radical en el comportamiento digital.
-          </motion.p>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-wrap justify-center gap-6"
-          >
-            <button 
-              onClick={() => onNavigate('login')}
-              className="btn-cta mono-label !text-xs"
-            >
-              Iniciar Sesión
-            </button>
-            <button 
-              onClick={() => onNavigate('register-student')}
-              className="btn-outline-accent mono-label !text-xs px-10 py-4 hover:bg-white hover:shadow-lg"
-            >
-              Soy Estudiante
-            </button>
-            <button 
-              onClick={() => onNavigate('register-teacher')}
-              className="btn-outline-accent mono-label !text-xs px-10 py-4 hover:bg-white hover:shadow-lg"
-            >
-              Soy Docente
-            </button>
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2444D8] via-[#3552E6] to-[#4D6BFE] h-[340px] shadow-[0_24px_48px_rgba(36,68,216,0.28)]">
+              <div className="absolute inset-0 p-8"><HeroIllustration /></div>
+            </div>
+            <div className="absolute -left-4 top-10 rounded-2xl bg-white px-4 py-3 shadow-xl flex items-center gap-3">
+              <span className="h-9 w-9 rounded-xl bg-green-50 text-green-600 flex items-center justify-center"><CheckCircle2 size={18} /></span>
+              <div>
+                <div className="text-[13px] font-semibold">Mensaje publicado</div>
+                <div className="text-[11px] text-slate-400">Tono respetuoso</div>
+              </div>
+            </div>
+            <div className="absolute -right-3 bottom-8 rounded-2xl bg-white px-4 py-3 shadow-xl flex items-center gap-3">
+              <span className="h-9 w-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center"><AlertTriangle size={18} /></span>
+              <div>
+                <div className="text-[13px] font-semibold">Enviado a revisión</div>
+                <div className="text-[11px] text-slate-400">Posible lenguaje ofensivo</div>
+              </div>
+            </div>
           </motion.div>
         </div>
-
-        {/* Decorative background grid */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </header>
 
-      {/* Features Section */}
-      <section id="features" className="py-32">
+      {/* Herramientas */}
+      <section id="features" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col mb-20">
-            <span className="mono-label text-accent mb-4">Filosofía</span>
-            <h2 className="text-5xl md:text-6xl font-serif">Nuestras Herramientas</h2>
+          <div className="mb-10">
+            <span className="text-[13px] font-semibold text-[#2444D8]">Filosofía</span>
+            <h2 className="mt-1 font-display text-3xl md:text-4xl font-bold tracking-tight">Nuestras herramientas</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((feature, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
                 viewport={{ once: true }}
-                className="card-hero p-12 group"
+                className="rounded-2xl bg-white p-7 shadow-[0_4px_16px_rgba(15,23,42,0.04)] hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(36,68,216,0.10)] transition-all"
               >
-                <div className="w-14 h-14 mb-8 flex items-center justify-center rounded-2xl bg-primary/10 text-accent ring-1 ring-primary/10">
-                  <feature.icon size={32} strokeWidth={1.5} />
+                <div className={`w-12 h-12 mb-5 flex items-center justify-center rounded-xl ${feature.color}`}>
+                  <feature.icon size={24} strokeWidth={1.8} />
                 </div>
-                <h3 className="text-3xl font-serif mb-6">{feature.title}</h3>
-                <p className="text-ink/65 leading-relaxed font-sans font-light">
-                  {feature.description}
-                </p>
+                <h3 className="font-display text-xl font-semibold mb-2">{feature.title}</h3>
+                <p className="text-[14px] text-slate-500 leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Process Section */}
-      <section className="py-32 border-t border-ink/5">
-        <div className="max-w-7xl mx-auto px-4 lg:grid lg:grid-cols-2 lg:gap-20 items-center">
-          <div>
-            <span className="mono-label text-accent mb-4 block">Metodología</span>
-            <h2 className="text-5xl font-serif mb-8">Diseñamos el futuro de la comunicación académica.</h2>
-            <p className="text-xl text-ink/60 mb-12 font-light">Buscamos la verdad en la interacción y el equilibrio en el espacio educativo digital.</p>
-          </div>
+      {/* Metodología */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl bg-white p-8 md:p-12 shadow-[0_4px_16px_rgba(15,23,42,0.04)] grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <span className="text-[13px] font-semibold text-[#2444D8]">Metodología</span>
+              <h2 className="mt-1 font-display text-3xl md:text-4xl font-bold tracking-tight">Diseñamos el futuro de la comunicación académica.</h2>
+              <p className="mt-4 text-[16px] text-slate-500 leading-relaxed">Buscamos la verdad en la interacción y el equilibrio en el espacio educativo digital.</p>
+            </div>
 
-          <div className="grid sm:grid-cols-1 gap-8 border-l border-ink/10 pl-12">
-            {steps.map((step) => (
-              <div key={step.id} className="group card-hero p-6">
-                <div className="text-4xl font-serif text-accent mb-2">{step.id.toString().padStart(2, '0')}</div>
-                <div>
-                  <h4 className="mono-label text-ink mb-2">{step.title}</h4>
-                  <p className="text-ink/50 text-sm font-light">{step.desc}</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {steps.map((step) => (
+                <div key={step.id} className="rounded-2xl bg-[#F6F8FD] p-5">
+                  <div className="h-9 w-9 rounded-full bg-[#2444D8] text-white flex items-center justify-center text-[14px] font-bold">{step.id}</div>
+                  <h4 className="mt-3 font-display text-[16px] font-semibold">{step.title}</h4>
+                  <p className="mt-1 text-[13px] text-slate-500">{step.desc}</p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-ink/10 text-center bg-paper">
-        <div className="mono-label opacity-40">
-          © 2026 RAU — CARTAGENA — GLOBAL
-        </div>
-        <p className="text-[10px] mono-label opacity-30 mt-4">
-          SCROLL NOT REQUIRED — GEMINI POWERED
-        </p>
+      {/* Pie */}
+      <footer className="py-10 border-t border-slate-200/70 text-center">
+        <div className="text-[13px] text-slate-500">© 2026 RAU — Cartagena — Global</div>
+        <p className="text-[11px] text-slate-400 mt-2">Scroll not required — Gemini powered</p>
       </footer>
     </div>
   );
