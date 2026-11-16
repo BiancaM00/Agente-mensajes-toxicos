@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
-from app.models import Usuario, Publicacion, CasoModeracion, Hilo, Foro
+from app.models import Usuario, Publicacion, CasoModeracion, Hilo, Foro, DecisionAgente, Matricula, Curso
 from app.models.publicacion import EstadoPublicacion
 from app.models.moderacion import EstadoModeracion
 from app.middleware import require_roles
@@ -398,4 +398,80 @@ async def obtener_metricas_globales(
             "tendencia": tendencia_str,
             "detalles_incidentes": detalles_incidentes
         }
+    }
+
+
+@router.get(
+    "/decisiones-agente",
+    status_code=status.HTTP_200_OK,
+    summary="Historial de decisiones del agente",
+)
+async def obtener_decisiones_agente(
+    curso_id: Optional[int] = None,
+    publicacion_id: Optional[int] = None,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_roles(["DOCENTE", "ADMIN_INSTITUCIONAL"])),
+):
+    """Consulta las decisiones persistidas por el agente moderador."""
+
+    if limit < 1 or limit > 100 or offset < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit debe estar entre 1 y 100 y offset no puede ser negativo",
+        )
+
+    query = (
+        db.query(DecisionAgente)
+        .join(Publicacion, DecisionAgente.publicacion_id == Publicacion.id)
+        .join(Hilo, Publicacion.hilo_id == Hilo.id)
+        .join(Foro, Hilo.foro_id == Foro.id)
+        .join(Curso, Foro.curso_id == Curso.id)
+    )
+
+    if current_user.rol == "DOCENTE":
+        cursos_docente = db.query(Matricula.curso_id).filter(
+            Matricula.usuario_id == current_user.id,
+            Matricula.rol_en_curso == "DOCENTE",
+            Matricula.activo == True,
+        ).subquery()
+
+        query = query.filter(Curso.id.in_(cursos_docente))
+    else:
+        query = query.filter(Curso.institucion_id == current_user.institucion_id)
+
+    if curso_id is not None:
+        query = query.filter(Curso.id == curso_id)
+
+    if publicacion_id is not None:
+        query = query.filter(DecisionAgente.publicacion_id == publicacion_id)
+
+    total = query.count()
+    decisiones = query.order_by(
+        DecisionAgente.creado_en.desc()
+    ).limit(limit).offset(offset).all()
+
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": d.id,
+                "publicacion_id": d.publicacion_id,
+                "accion": d.accion,
+                "score": d.score,
+                "probabilidades": d.probabilidades,
+                "costo_esperado": d.costo_esperado,
+                "reincidencia": d.reincidencia,
+                "explicacion": d.explicacion,
+                "modelo": d.modelo,
+                "creado_en": d.creado_en.isoformat() if d.creado_en else None,
+            }
+            for d in decisiones
+        ],
+        "pagination": {
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        },
     }
