@@ -93,3 +93,44 @@ def ejecutar_decision(publicacion, decision: Decision):
         publicacion=publicacion,
         accion=decision.accion,
     )
+def procesar_con_persistencia(
+    db,
+    percepcion: Percepcion,
+    resultado_nlp: Optional[ResultadoNLP],
+    publicacion_id: int,
+    ahora: Optional[datetime] = None,
+) -> Decision:
+    """
+    Consulta la reincidencia, procesa la publicación
+    y guarda la decisión junto con el nuevo estado.
+    """
+
+    from app.agent.persistencia import (
+        obtener_estado_reincidencia,
+        guardar_decision_y_estado,
+    )
+
+    reincidencia_anterior, ultima_actualizacion = (
+        obtener_estado_reincidencia(
+            db=db,
+            usuario_id=percepcion.autor_id,
+            curso_id=percepcion.curso_id,
+        )
+    )
+
+    decision = procesar(
+        percepcion=percepcion,
+        resultado_nlp=resultado_nlp,
+        reincidencia_anterior=reincidencia_anterior,
+        ultima_actualizacion=ultima_actualizacion,
+        ahora=ahora,
+    )
+
+    guardar_decision_y_estado(
+        db=db,
+        publicacion_id=publicacion_id,
+        percepcion=percepcion,
+        decision=decision,
+    )
+
+    return decision
