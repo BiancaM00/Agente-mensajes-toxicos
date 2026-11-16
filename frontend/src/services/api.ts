@@ -1,4 +1,5 @@
 import { respuestaMock, type RespuestaAgente } from '../mocks/agente';
+import { decisionesMock, metricasMock, type DecisionAgente, type MetricasAgente } from '../mocks/centro';
 const API_BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL) ? String(import.meta.env.VITE_API_URL) : `http://${window.location.hostname || 'localhost'}:8000`;
 
 const ACCESS_TOKEN_KEY = 'rau_access_token';
@@ -164,12 +165,16 @@ export async function analizarMensaje(texto: string, texto_padre?: string, curso
   return request('/agente/analizar', { method: 'POST', body: JSON.stringify({ texto, texto_padre, curso_id }) });
 }
 
-export async function getDecisionesAgente(limit = 50) {
-  return request(`/agente/decisiones?limit=${limit}`);
+export async function getDecisionesAgente(limit = 50): Promise<DecisionAgente[]> {
+  if (USE_MOCKS) return new Promise(r => setTimeout(() => r(decisionesMock.slice(0, limit)), 300));
+  const res = await request(`/agente/decisiones?limit=${limit}`);
+  return res?.data ?? res ?? [];
 }
 
-export async function getMetricasAgente() {
-  return request('/agente/metricas');
+export async function getMetricasAgente(): Promise<MetricasAgente> {
+  if (USE_MOCKS) return new Promise(r => setTimeout(() => r(metricasMock), 300));
+  const res = await request('/agente/metricas');
+  return res?.data ?? res;
 }
 
 const apiDefault = {

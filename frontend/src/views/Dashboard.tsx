@@ -12,7 +12,8 @@ import { ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { getStoredSession } from '../services/auth';
 import Laboratorio from './Laboratorio';
-import { BookOpen, Code2, Calculator, Scale, Database, BrainCircuit, CalendarDays, Eye, Minus, FlaskConical } from 'lucide-react';
+import CentroAgente from './CentroAgente';
+import { BookOpen, Code2, Calculator, Scale, Database, BrainCircuit, CalendarDays, Eye, Minus, FlaskConical, Bot } from 'lucide-react';
 import { Card, KpiCard, RiskBadge, StatusBadge, ScoreBar, Avatar, ActivityArea, RiskDonut, CourseBars, Gauge, ScoreLine, RISK_COLOR, HeroIllustration, WeekStrip, TextoResaltado, extraerFragmentos } from '../components/ui';
 
 interface DashboardProps {
@@ -72,7 +73,7 @@ interface AdminUserItem {
 }
 
 export default function Dashboard({ userRole, onLogout }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'courses' | 'settings' | 'status' | 'profile' | 'lab'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'courses' | 'settings' | 'status' | 'profile' | 'lab' | 'agente'>(() => {
     return userRole === 'estudiante' ? 'courses' : 'overview';
   });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -188,6 +189,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
   const tabTitles: Record<string, [string, string]> = {
     overview: ['Resumen institucional', 'Así está la convivencia en tus foros hoy'],
     messages: ['Moderación', 'Mensajes que el agente retuvo para tu decisión'],
+    agente: ['Centro del Agente', 'Qué decidió el agente, qué recuerda y cómo aprende'],
     lab: ['Laboratorio del Agente', 'Mira paso a paso cómo el agente analiza y decide'],
     courses: ['Cursos y foros', 'Entra a un curso para participar en sus foros'],
     status: ['Mi convivencia', 'Cómo ha evaluado el agente tus mensajes'],
@@ -450,6 +452,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
   const menuItems = [
     { id: 'overview', icon: BarChart3, label: 'Resumen', roles: ['admin', 'docente'] },
     { id: 'messages', icon: MessageSquare, label: 'Moderación', roles: ['admin', 'docente'] },
+    { id: 'agente', icon: Bot, label: 'Centro del Agente', roles: ['admin', 'docente'] },
     { id: 'lab', icon: FlaskConical, label: 'Laboratorio', roles: ['admin', 'docente', 'estudiante'] },
     { id: 'courses', icon: FolderOpen, label: 'Cursos', roles: ['admin', 'docente', 'estudiante'] },
     { id: 'status', icon: AlertTriangle, label: 'Mi convivencia', roles: ['estudiante'] },
@@ -920,6 +923,12 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                   <Gauge value={(globalMetrics?.avg_score || 0) * 100} label="score medio" />
                 </div>
               </aside>
+            </motion.div>
+          )}
+
+          {activeTab === 'agente' && (
+            <motion.div key="agente" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <CentroAgente />
             </motion.div>
           )}
 
