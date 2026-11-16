@@ -1,3 +1,4 @@
+import { respuestaMock, type RespuestaAgente } from '../mocks/agente';
 const API_BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL) ? String(import.meta.env.VITE_API_URL) : `http://${window.location.hostname || 'localhost'}:8000`;
 
 const ACCESS_TOKEN_KEY = 'rau_access_token';
@@ -155,6 +156,22 @@ export async function assignModerator(pubId: number) {
   return request(`/moderacion/${pubId}/asignar`, { method: 'PUT' });
 }
 
+// ─── Agente Moderador ───
+const USE_MOCKS = String(import.meta.env?.VITE_USE_MOCKS || '') === 'true';
+
+export async function analizarMensaje(texto: string, texto_padre?: string, curso_id = 0): Promise<RespuestaAgente> {
+  if (USE_MOCKS) return new Promise(r => setTimeout(() => r(respuestaMock(texto)), 400));
+  return request('/agente/analizar', { method: 'POST', body: JSON.stringify({ texto, texto_padre, curso_id }) });
+}
+
+export async function getDecisionesAgente(limit = 50) {
+  return request(`/agente/decisiones?limit=${limit}`);
+}
+
+export async function getMetricasAgente() {
+  return request('/agente/metricas');
+}
+
 const apiDefault = {
   request,
   getCursosForUser,
@@ -186,7 +203,10 @@ const apiDefault = {
   createHilo,
   createPublicacion,
   aprobarPublicacion,
-  rechazarPublicacion
+  rechazarPublicacion,
+  analizarMensaje,
+  getDecisionesAgente,
+  getMetricasAgente,
 };
 
 export default apiDefault;
