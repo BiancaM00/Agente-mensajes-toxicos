@@ -4,16 +4,17 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
-from app.models import Usuario, Publicacion, Hilo, Foro, Curso, Matricula, SeguimientoToxicidad
-from app.models.evaluacion import NivelRiesgo
+from app.models import Usuario, Publicacion, Hilo, Foro, Curso, Matricula
 from app.models.publicacion import EstadoPublicacion
 from app.models.moderacion import CasoModeracion
 from app.models.notificacion import TipoNotificacion
 from app.schemas import PublicacionCreate, PublicacionResponse, PublicacionListResponse
 from app.middleware import get_current_user
-from app.services import ToxicityService
 from app.services.notificacion_service import NotificacionService
 from typing import Optional
+from app.agent.adaptador_nlp import preparar_resultado_nlp
+from app.agent.tipos import Percepcion, ResultadoNLP
+from app.agent.agente import procesar_con_persistencia, ejecutar_decision
 
 
 # Schemas
@@ -372,7 +373,7 @@ async def listar_publicaciones_hilo(
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
     summary="Crear Publicación",
-    description="Crea una nueva publicación y dispara análisis de toxicidad."
+    description="Crea una publicación y ejecuta el agente inteligente de moderación."
 )
 async def crear_publicacion(
     hilo_id: int,
@@ -380,77 +381,72 @@ async def crear_publicacion(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    """
-    Crea una publicación en un hilo.
-    
-    El sistema analizará automáticamente el contenido.
-    Si el riesgo es ALTO, la publicación requiere revisión docente.
-    """
-    hilo = db.query(Hilo).join(Foro, Foro.id == Hilo.foro_id).join(Curso, Curso.id == Foro.curso_id).filter(Hilo.id == hilo_id, Foro.activo == True, Curso.activo == True).first()
-    
+    """Crea una publicación y aplica la decisión del agente moderador."""
+
+    from datetime import datetime, timedelta
+
+    hilo = (
+        db.query(Hilo)
+        .join(Foro, Foro.id == Hilo.foro_id)
+        .join(Curso, Curso.id == Foro.curso_id)
+        .filter(
+            Hilo.id == hilo_id,
+            Foro.activo == True,
+            Curso.activo == True,
+        )
+        .first()
+    )
+
     if not hilo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Hilo no encontrado"
+            detail="Hilo no encontrado",
         )
 
-    if not _tiene_acceso_curso(db, current_user, hilo.foro.curso_id):
+    curso_id = hilo.foro.curso_id
+
+    if not _tiene_acceso_curso(db, current_user, curso_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No estás matriculado en este curso"
+            detail="No estás matriculado en este curso",
         )
 
     try:
-        # Prevent reposting a message that was recently rejected or duplicated
-        from datetime import datetime, timedelta
-        recent = db.query(Publicacion).filter(
-            Publicacion.hilo_id == hilo_id,
-            Publicacion.autor_id == current_user.id,
-            Publicacion.contenido == pub_data.contenido
-        ).order_by(Publicacion.creado_en.desc()).first()
+        # Evitar publicaciones duplicadas o mensajes rechazados previamente.
+        recent = (
+            db.query(Publicacion)
+            .filter(
+                Publicacion.hilo_id == hilo_id,
+                Publicacion.autor_id == current_user.id,
+                Publicacion.contenido == pub_data.contenido,
+            )
+            .order_by(Publicacion.creado_en.desc())
+            .first()
+        )
+
         if recent:
-            # If it was rejected previously, reject re-sending
             if recent.estado == EstadoPublicacion.RECHAZADO:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Este mensaje fue rechazado previamente y no puede reenviarse.")
-            # If a nearly identical message was created very recently, treat as duplicate
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Este mensaje fue rechazado previamente y no puede reenviarse.",
+                )
+
             try:
-                delta = datetime.utcnow() - (recent.creado_en.replace(tzinfo=None) if recent.creado_en else datetime.utcnow())
+                delta = datetime.utcnow() - (
+                    recent.creado_en.replace(tzinfo=None)
+                    if recent.creado_en
+                    else datetime.utcnow()
+                )
             except Exception:
                 delta = timedelta(seconds=9999)
+
             if delta.total_seconds() < 120:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Este mensaje parece duplicado. Espera unos segundos antes de volver a intentar.")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Este mensaje parece duplicado. Espera unos segundos antes de volver a intentar.",
+                )
 
-        score, riesgo, modelo = await ToxicityService.evaluar_texto(pub_data.contenido)
-
-        if riesgo is None:
-            seguimiento = db.query(SeguimientoToxicidad).filter(
-                SeguimientoToxicidad.usuario_id == current_user.id,
-                SeguimientoToxicidad.curso_id == hilo.foro.curso_id,
-            ).first()
-            if seguimiento and seguimiento.advertencias_consecutivas:
-                seguimiento.advertencias_consecutivas = 0
-
-            publicacion = Publicacion(
-                hilo_id=hilo_id,
-                autor_id=current_user.id,
-                contenido=pub_data.contenido,
-                estado=EstadoPublicacion.APROBADO,
-            )
-            db.add(publicacion)
-            db.commit()
-            db.refresh(publicacion)
-
-            return {
-                "success": True,
-                "message": "Publicación creada correctamente",
-                "data": {
-                    "publicacion_id": publicacion.id,
-                    "estado": publicacion.estado,
-                    "evaluacion": None,
-                }
-            }
-
-        # Create a Publicacion record so moderation can track it
+        # Registrar primero la publicación para obtener su identificador.
         publicacion = Publicacion(
             hilo_id=hilo_id,
             autor_id=current_user.id,
@@ -461,55 +457,63 @@ async def crear_publicacion(
         db.commit()
         db.refresh(publicacion)
 
-        # Persist evaluation and update publication state
+        # Construir la percepción del agente.
+        percepcion = Percepcion(
+            texto=pub_data.contenido,
+            autor_id=current_user.id,
+            curso_id=curso_id,
+            hilo_id=hilo_id,
+        )
+
+        # Ejecutar el módulo NLP.
         try:
-            await ToxicityService.analizar_publicacion(db, publicacion.id, pub_data.contenido)
-        except Exception:
-            # If analysis fails, leave the publication in pending state but continue
-            pass
-
-        seguimiento = db.query(SeguimientoToxicidad).filter(
-            SeguimientoToxicidad.usuario_id == current_user.id,
-            SeguimientoToxicidad.curso_id == hilo.foro.curso_id,
-        ).first()
-
-        if not seguimiento:
-            seguimiento = SeguimientoToxicidad(
-                usuario_id=current_user.id,
-                curso_id=hilo.foro.curso_id,
-                advertencias_consecutivas=0,
+            datos_nlp = preparar_resultado_nlp(
+                texto=pub_data.contenido,
+                explicar=False,
             )
-            db.add(seguimiento)
+            resultado_nlp = ResultadoNLP(**datos_nlp)
+        except Exception:
+            # Si falla el NLP, el agente retendrá la publicación
+            # para revisión manual.
+            resultado_nlp = None
 
-        debe_reportar = False
-        if riesgo == NivelRiesgo.ALTO:
-            seguimiento.advertencias_consecutivas = 0
-            debe_reportar = True
-        else:
-            seguimiento.advertencias_consecutivas += 1
-            debe_reportar = seguimiento.advertencias_consecutivas >= 3
-            if debe_reportar:
-                seguimiento.advertencias_consecutivas = 0
+        # Procesar la percepción, calcular la decisión y guardar
+        # la decisión junto con el estado de reincidencia.
+        decision = procesar_con_persistencia(
+            db=db,
+            percepcion=percepcion,
+            resultado_nlp=resultado_nlp,
+            publicacion_id=publicacion.id,
+        )
 
-        docentes = db.query(Usuario).join(Matricula).filter(
-            Matricula.curso_id == hilo.foro.curso_id,
-            Matricula.rol_en_curso == "DOCENTE",
-            Matricula.activo == True,
-            Usuario.activo == True,
-        ).all()
+        # Aplicar la acción seleccionada a la publicación.
+        resultado_accion = ejecutar_decision(
+            publicacion=publicacion,
+            decision=decision,
+        )
 
-        if debe_reportar:
-            # Mantener el último mensaje visible para moderación y para el estudiante
-            publicacion.estado = EstadoPublicacion.PENDIENTE_REVISION
+        db.commit()
+        db.refresh(publicacion)
 
-            if riesgo == NivelRiesgo.ALTO:
-                mensaje_docente = (
-                    f"El estudiante {current_user.nombre} intentó publicar contenido de alta toxicidad en {hilo.foro.curso.nombre}."
+        # Notificar a los docentes si la publicación requiere revisión.
+        if publicacion.estado == EstadoPublicacion.PENDIENTE_REVISION:
+            docentes = (
+                db.query(Usuario)
+                .join(Matricula)
+                .filter(
+                    Matricula.curso_id == curso_id,
+                    Matricula.rol_en_curso == "DOCENTE",
+                    Matricula.activo == True,
+                    Usuario.activo == True,
                 )
-            else:
-                mensaje_docente = (
-                    f"El estudiante {current_user.nombre} acumuló varias advertencias por contenido inapropiado en {hilo.foro.curso.nombre}."
-                )
+                .all()
+            )
+
+            mensaje_docente = (
+                f"La publicación {publicacion.id} del estudiante "
+                f"{current_user.nombre} requiere revisión. "
+                f"Acción del agente: {decision.accion}."
+            )
 
             for docente in docentes:
                 NotificacionService.crear_notificacion(
@@ -520,26 +524,37 @@ async def crear_publicacion(
                     publicacion_id=publicacion.id,
                 )
 
-        db.commit()
+        return {
+            "success": True,
+            "message": resultado_accion["mensaje"],
+            "data": {
+                "publicacion_id": publicacion.id,
+                "estado": publicacion.estado,
+                "accion": decision.accion,
+                "score_toxicidad": decision.nlp.score_toxicidad,
+                "probabilidades": decision.nlp.probabilidades,
+                "reincidencia": decision.reincidencia,
+                "explicacion": decision.explicacion,
+                "modelo": decision.nlp.modelo,
+                "requiere_notificacion_urgente": (
+                    resultado_accion["requiere_notificacion_urgente"]
+                ),
+                "requiere_reescritura": (
+                    resultado_accion["requiere_reescritura"]
+                ),
+            },
+        }
 
-        mensaje = ToxicityService.mensaje_advertencia(
-            riesgo,
-            seguimiento.advertencias_consecutivas if not debe_reportar else 3,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=mensaje,
-        )
     except HTTPException:
         db.rollback()
         raise
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al analizar la publicación: {str(e)}"
+            detail=f"Error al procesar la publicación: {str(e)}",
         )
-
 
 @router.get(
     "/publicaciones/{pub_id}",
