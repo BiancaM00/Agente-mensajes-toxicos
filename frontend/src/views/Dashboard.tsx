@@ -11,7 +11,8 @@ import { UserRole } from '../App';
 import { ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { getStoredSession } from '../services/auth';
-import { BookOpen, Code2, Calculator, Scale, Database, BrainCircuit, CalendarDays, Eye, Minus } from 'lucide-react';
+import Laboratorio from './Laboratorio';
+import { BookOpen, Code2, Calculator, Scale, Database, BrainCircuit, CalendarDays, Eye, Minus, FlaskConical } from 'lucide-react';
 import { Card, KpiCard, RiskBadge, StatusBadge, ScoreBar, Avatar, ActivityArea, RiskDonut, CourseBars, Gauge, ScoreLine, RISK_COLOR, HeroIllustration, WeekStrip } from '../components/ui';
 
 interface DashboardProps {
@@ -186,6 +187,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
   const tabTitles: Record<string, [string, string]> = {
     overview: ['Resumen institucional', 'Así está la convivencia en tus foros hoy'],
     messages: ['Moderación', 'Mensajes que el agente retuvo para tu decisión'],
+    lab: ['Laboratorio del Agente', 'Mira paso a paso cómo el agente analiza y decide'],
     courses: ['Cursos y foros', 'Entra a un curso para participar en sus foros'],
     status: ['Mi convivencia', 'Cómo ha evaluado el agente tus mensajes'],
     settings: ['Gestión de la red', 'Usuarios, cursos y matrículas'],
@@ -447,6 +449,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
   const menuItems = [
     { id: 'overview', icon: BarChart3, label: 'Resumen', roles: ['admin', 'docente'] },
     { id: 'messages', icon: MessageSquare, label: 'Moderación', roles: ['admin', 'docente'] },
+    { id: 'lab', icon: FlaskConical, label: 'Laboratorio', roles: ['admin', 'docente', 'estudiante'] },
     { id: 'courses', icon: FolderOpen, label: 'Cursos', roles: ['admin', 'docente', 'estudiante'] },
     { id: 'status', icon: AlertTriangle, label: 'Mi convivencia', roles: ['estudiante'] },
     { id: 'settings', icon: ShieldCheck, label: 'Gestión de Red', roles: ['admin'] }
@@ -912,6 +915,12 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                   <Gauge value={(globalMetrics?.avg_score || 0) * 100} label="score medio" />
                 </div>
               </aside>
+            </motion.div>
+          )}
+
+          {(activeTab as string) === 'lab' && (
+            <motion.div key="lab" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <Laboratorio />
             </motion.div>
           )}
 
