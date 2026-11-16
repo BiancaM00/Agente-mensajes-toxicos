@@ -1,0 +1,30 @@
+
+# Configuración inicial del agente moderador
+
+reincidencia:
+  tau_dias: 7.0
+
+categorias:
+  - insulto
+  - acoso
+  - amenaza
+  - odio
+  - spam
+  - ninguna
+
+acciones:
+  - PUBLICAR
+  - PUBLICAR_CON_AVISO
+  - PEDIR_REESCRITURA
+  - RETENER
+  - RETENER_URGENTE
+
+seguridad:
+  retener_si_falla_nlp: true
+  revision_manual_si_falla: true
+
+moderacion:
+  notificar_docente_si_urgente: true
+  estado_revision: PENDIENTE_REVISION
+  estado_aprobado: APROBADO
+
