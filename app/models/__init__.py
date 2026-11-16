@@ -10,6 +10,8 @@ from app.models.moderacion import CasoModeracion
 from app.models.notificacion import Notificacion
 from app.models.refresh_token import RefreshToken
 from app.models.toxicity_tracking import SeguimientoToxicidad
+from app.models.estado_agente import EstadoAgente
+from app.models.decision_agente import DecisionAgente   
 
 __all__ = [
     "Usuario",
@@ -24,4 +26,6 @@ __all__ = [
     "Notificacion",
     "RefreshToken",
     "SeguimientoToxicidad",
+    "EstadoAgente",
+    "DecisionAgente"
 ]

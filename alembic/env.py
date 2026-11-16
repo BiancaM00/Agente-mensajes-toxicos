@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 from logging.config import fileConfig
 
@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from app.config import get_settings
 from app.database import Base
+import app.models
 
 settings = get_settings()
 
