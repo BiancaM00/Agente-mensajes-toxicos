@@ -17,6 +17,7 @@ from app.routers import (
     notificaciones_router,
     dashboard_router,
     cursos_router,
+    agente_router,
 )
 
 settings = get_settings()
@@ -88,6 +89,7 @@ app.include_router(moderacion_router)
 app.include_router(notificaciones_router)
 app.include_router(dashboard_router)
 app.include_router(cursos_router)
+app.include_router(agente_router)
 
 
 # â”€â”€â”€ Frontend estÃ¡tico solo en producciÃ³n â”€â”€â”€

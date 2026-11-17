@@ -15,3 +15,5 @@ __all__ = [
     "dashboard_router",
     "cursos_router",
 ]
+
+from .agente_router import router as agente_router
