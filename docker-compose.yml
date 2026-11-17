@@ -37,6 +37,7 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       APP_ENV: ${APP_ENV}
+      HF_HOME: /app/.hf_cache
     volumes:
       - .:/app
     depends_on:

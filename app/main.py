@@ -20,6 +20,8 @@ from app.routers import (
     agente_router,
 )
 
+from app.agent.clasificador import cargar_modelos
+
 settings = get_settings()
 
 
@@ -31,6 +33,13 @@ async def lifespan(app: FastAPI):
     # Startup
     print("ðŸš€ Iniciando aplicaciÃ³n FastAPI...")
     
+    # Precargar modelos del agente
+    try:
+        cargar_modelos()
+        print('Modelos del agente cargados correctamente')
+    except Exception as e:
+        print(f'Error al precargar modelos del agente: {e}')
+
     # Crear tablas si no existen
     try:
         Base.metadata.create_all(bind=engine)

@@ -375,7 +375,7 @@ async def listar_publicaciones_hilo(
     summary="Crear Publicación",
     description="Crea una publicación y ejecuta el agente inteligente de moderación."
 )
-async def crear_publicacion(
+def crear_publicacion(
     hilo_id: int,
     pub_data: PublicacionCreate,
     db: Session = Depends(get_db),
