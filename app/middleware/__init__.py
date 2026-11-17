@@ -1,6 +1,7 @@
 """Middleware de autenticación y autorización."""
 
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Usuario
@@ -9,76 +10,55 @@ from app.config import get_settings
 from typing import Optional
 
 settings = get_settings()
+security = HTTPBearer()
 
 
 async def get_current_user(
-    authorization: Optional[str] = Header(None),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> Usuario:
     """
     Obtiene el usuario actual del JWT token.
-    
-    Args:
-        authorization: Header de autorización Bearer
-        db: Sesión de base de datos
-    
-    Returns:
-        Objeto Usuario si el token es válido
-    
-    Raises:
-        HTTPException: Si el token no es válido o el usuario no existe
     """
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header missing",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    try:
-        scheme, token = authorization.split()
-        if scheme.lower() != "bearer":
-            raise ValueError("Invalid scheme")
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization header",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
+    token = credentials.credentials
+
     payload = decode_token(token)
-    
+
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido o expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    usuario_id: int = payload.get("sub")
+
+    usuario_id = payload.get("sub")
+
     if usuario_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido (sub missing)",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-    
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id == int(usuario_id)
+    ).first()
+
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no encontrado",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not usuario.activo:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario desactivado",
         )
-    
+
     return usuario
+
 
 
 def require_roles(allowed_roles: list[str]):
