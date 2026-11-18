@@ -3,7 +3,7 @@
  * retroalimentación del docente. Usa api.getDecisionesAgente y api.getMetricasAgente
  * (datos de ejemplo si VITE_USE_MOCKS=true, backend real si no).
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, Send, PauseCircle, ThumbsUp, Brain, ChevronDown, CheckCircle2, XCircle, Clock, Loader2, Info } from 'lucide-react';
 import api from '../services/api';
@@ -12,10 +12,10 @@ import type { DecisionAgente, MetricasAgente } from '../mocks/centro';
 import { Avatar, TextoResaltado } from '../components/ui';
 
 const ACCIONES: Record<Accion, { nombre: string; clase: string; barra: string }> = {
-  PUBLICAR: { nombre: 'Publicar', clase: 'bg-green-50 text-green-700 ring-green-600/20', barra: '#86CBA0' },
-  PUBLICAR_CON_AVISO: { nombre: 'Publicar con aviso', clase: 'bg-lime-50 text-lime-700 ring-lime-600/20', barra: '#B5D38F' },
+  PUBLICAR: { nombre: 'Publicar', clase: 'bg-green-50 text-green-700 ring-green-600/20', barra: '#52A67C' },
+  PUBLICAR_CON_AVISO: { nombre: 'Publicar con aviso', clase: 'bg-lime-50 text-lime-700 ring-lime-600/20', barra: '#9DBF6E' },
   PEDIR_REESCRITURA: { nombre: 'Pedir reescritura', clase: 'bg-amber-50 text-amber-700 ring-amber-600/25', barra: '#F3CD82' },
-  RETENER: { nombre: 'Retener', clase: 'bg-red-50/70 text-red-600 ring-red-200', barra: '#EBA49D' },
+  RETENER: { nombre: 'Retener', clase: 'bg-[#E5675F]/10 text-[#E5675F] ring-[#E5675F]/30', barra: '#E5675F' },
   RETENER_URGENTE: { nombre: 'Retener urgente', clase: 'bg-rose-50 text-rose-700 ring-rose-200', barra: '#D5AEB7' },
 };
 const ORDEN: Accion[] = ['PUBLICAR', 'PUBLICAR_CON_AVISO', 'PEDIR_REESCRITURA', 'RETENER', 'RETENER_URGENTE'];
@@ -25,7 +25,7 @@ const sombra = 'shadow-[0_4px_16px_rgba(15,23,42,0.04)]';
 
 /** Tono de texto y fondo suave según la reincidencia. */
 function colorR(r: number) {
-  if (r >= 0.5) return '#D2544C';
+  if (r >= 0.5) return '#E5675F';
   if (r >= 0.25) return '#B7791F';
   return '#15803D';
 }
@@ -41,48 +41,139 @@ function fechaCorta(iso: string) {
   } catch { return iso; }
 }
 
-/** Curva de reincidencia: R(t) = Σ s_i · e^(−(t − t_i)/τ), dibujada en los últimos 14 días. */
+/**
+ * Curva de reincidencia: R(t) = Σ s_i · e^(−(t − t_i)/τ).
+ * Parte sólida: lo que ya pasó. Parte punteada: cómo se irá olvidando si no vuelve a fallar.
+ * Pasa el mouse por encima para ver el valor de R en cada día.
+ */
+const ROJO = '#E5675F';
+const AZUL = '#4D6BFE';
 function CurvaR({ eventos, tau }: { eventos: Array<{ dias_atras: number; severidad: number }>; tau: number }) {
-  const W = 520, H = 210, PL = 34, PR = 12, PT = 12, PB = 26, DIAS = 14;
+  const [hover, setHover] = useState<number | null>(null);
+  const W = 560, H = 250, PL = 36, PR = 18, PT = 22, PB = 30;
+  const masAntiguo = Math.max(0, ...eventos.map(e => e.dias_atras));
+  const PASADO = Math.min(14, Math.max(7, Math.ceil(masAntiguo) + 1));
+  const FUTURO = 14;
+  const UMBRAL = 0.5;
   const R = (t: number) => eventos.reduce((acc, e) => {
-    const desde = DIAS - e.dias_atras;
-    return t >= desde ? acc + e.severidad * Math.exp(-(t - desde) / tau) : acc;
+    const te = -e.dias_atras;
+    return t >= te ? acc + e.severidad * Math.exp(-(t - te) / tau) : acc;
   }, 0);
-  const puntos: Array<[number, number]> = [];
-  for (let i = 0; i <= DIAS * 10; i++) puntos.push([i / 10, R(i / 10)]);
-  const maxY = Math.max(1, ...puntos.map(p => p[1]));
-  const x = (t: number) => PL + (t / DIAS) * (W - PL - PR);
+  const muestras = (desde: number, hasta: number) => {
+    const ts = new Set<number>();
+    for (let t = desde; t <= hasta + 1e-9; t += 0.05) ts.add(Math.round(t * 1000) / 1000);
+    eventos.forEach(e => { const te = -e.dias_atras; if (te > desde && te <= hasta) { ts.add(te - 1e-6); ts.add(te); } });
+    ts.add(hasta);
+    return [...ts].sort((m, n) => m - n).map(t => [t, R(t)] as [number, number]);
+  };
+  const pasado = muestras(-PASADO, 0);
+  const futuro = muestras(0, FUTURO);
+  const maxY = Math.max(1, Math.ceil(Math.max(...pasado.map(p => p[1])) * 2) / 2);
+  const x = (t: number) => PL + ((t + PASADO) / (PASADO + FUTURO)) * (W - PL - PR);
   const y = (v: number) => PT + (1 - v / maxY) * (H - PT - PB);
-  const linea = puntos.map((p, i) => `${i ? 'L' : 'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
-  const area = `${linea} L${x(DIAS)},${y(0)} L${x(0)},${y(0)} Z`;
-  const hoy = R(DIAS);
+  const camino = (pts: Array<[number, number]>) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
+  const area = (pts: Array<[number, number]>) => `${camino(pts)} L${x(pts[pts.length - 1][0])},${y(0)} L${x(pts[0][0])},${y(0)} Z`;
+  const hoy = R(0);
+  const en7 = R(7);
+  const en14 = R(FUTURO);
+  const faltas = eventos.filter(e => e.severidad >= 0.2 && e.dias_atras <= PASADO);
+  const etiquetaDia = (t: number) => {
+    const d = Math.round(Math.abs(t));
+    if (Math.abs(t) < 0.5) return 'Hoy';
+    return t < 0 ? `Hace ${d} ${d === 1 ? 'día' : 'días'}` : `En ${d} ${d === 1 ? 'día' : 'días'}`;
+  };
+
+  const onMove = (ev: ReactMouseEvent<SVGSVGElement>) => {
+    const rect = ev.currentTarget.getBoundingClientRect();
+    const px = ((ev.clientX - rect.left) / rect.width) * W;
+    const t = ((px - PL) / (W - PL - PR)) * (PASADO + FUTURO) - PASADO;
+    setHover(t < -PASADO || t > FUTURO ? null : Math.round(t * 2) / 2);
+  };
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none" onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
       <defs>
-        <linearGradient id="gradR" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#6F86E8" stopOpacity="0.12" />
-          <stop offset="100%" stopColor="#2444D8" stopOpacity="0" />
+        <linearGradient id="gradPasado" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={AZUL} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={AZUL} stopOpacity="0.02" />
+        </linearGradient>
+        <linearGradient id="gradFuturo" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={AZUL} stopOpacity="0.10" />
+          <stop offset="100%" stopColor={AZUL} stopOpacity="0" />
         </linearGradient>
       </defs>
-      {[0, 0.5, 1].map(v => v <= maxY && (
+
+      {/* Referencia visual: R alta. El agente no usa un umbral, aplica (1 + R) de forma continua */}
+      <rect x={PL} y={y(maxY)} width={W - PL - PR} height={y(UMBRAL) - y(maxY)} fill={ROJO} opacity="0.06" />
+      <line x1={PL} x2={W - PR} y1={y(UMBRAL)} y2={y(UMBRAL)} stroke={ROJO} strokeOpacity="0.45" strokeDasharray="4 4" />
+      <text x={W - PR - 4} y={y(UMBRAL) - 6} textAnchor="end" fontSize="10" fontWeight="600" fill={ROJO}>Reincidencia alta (R ≥ {UMBRAL})</text>
+
+      {/* Ejes */}
+      {Array.from({ length: Math.round(maxY / 0.5) + 1 }, (_, i) => i * 0.5).map(v => (
         <g key={v}>
-          <line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} stroke="#E5E9F5" strokeDasharray={v ? '4 4' : undefined} />
-          <text x={PL - 6} y={y(v) + 4} textAnchor="end" fontSize="10" fill="#94A3B8">{v.toFixed(1)}</text>
+          {v !== UMBRAL && <line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} stroke="#EEF1F7" />}
+          <text x={PL - 8} y={y(v) + 4} textAnchor="end" fontSize="10" fill="#94A3B8">{v.toFixed(1)}</text>
         </g>
       ))}
-      <path d={area} fill="url(#gradR)" />
-      <path d={linea} fill="none" stroke="#6F86E8" strokeWidth="2" strokeLinejoin="round" />
-      {eventos.map((e, i) => {
-        const t = DIAS - e.dias_atras;
-        return <circle key={i} cx={x(t)} cy={y(R(t))} r="4.5" fill="#EBA49D" stroke="#fff" strokeWidth="2" />;
+      <line x1={x(0)} x2={x(0)} y1={PT - 8} y2={H - PB} stroke="#94A3B8" strokeDasharray="2 3" />
+      <text x={x(-PASADO / 2)} y={PT - 8} textAnchor="middle" fontSize="10" fontWeight="600" fill="#94A3B8">LO QUE RECUERDA</text>
+      <text x={x(FUTURO / 2)} y={PT - 8} textAnchor="middle" fontSize="10" fontWeight="600" fill="#94A3B8">CÓMO LO OLVIDARÁ</text>
+
+      {/* Curvas */}
+      <path d={area(pasado)} fill="url(#gradPasado)" />
+      <path d={area(futuro)} fill="url(#gradFuturo)" />
+      <path d={camino(pasado)} fill="none" stroke={AZUL} strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={camino(futuro)} fill="none" stroke={AZUL} strokeWidth="2.2" strokeDasharray="6 5" strokeLinecap="round" opacity="0.75" />
+
+      {/* Faltas */}
+      {faltas.map((e, i) => {
+        const t = -e.dias_atras;
+        const cx = x(t), cy = y(R(t));
+        return (
+          <g key={i}>
+            <circle cx={cx} cy={cy} r="9" fill={ROJO} opacity="0.15" />
+            <circle cx={cx} cy={cy} r="5" fill={ROJO} stroke="#fff" strokeWidth="2" />
+            {Math.abs(t) > 0.6 && <text x={cx} y={cy - 12} textAnchor="middle" fontSize="10" fontWeight="600" fill={ROJO}>+{e.severidad.toFixed(2)}</text>}
+          </g>
+        );
       })}
-      <circle cx={x(DIAS)} cy={y(hoy)} r="5" fill="#6F86E8" stroke="#fff" strokeWidth="2" />
-      <text x={x(DIAS) - 8} y={y(hoy) + 20} textAnchor="end" fontSize="11" fontWeight="600" fill="#2444D8">R hoy = {hoy.toFixed(2)}</text>
-      {[0, 7, 14].map(d => (
-        <text key={d} x={x(d)} y={H - 8} textAnchor={d === 0 ? 'start' : d === 14 ? 'end' : 'middle'} fontSize="10" fill="#94A3B8">
-          {d === 14 ? 'hoy' : `hace ${DIAS - d} días`}
-        </text>
+
+      {/* Puntos clave */}
+      <circle cx={x(0)} cy={y(hoy)} r="6" fill={hoy >= UMBRAL ? ROJO : AZUL} stroke="#fff" strokeWidth="2.5" />
+      <g transform={`translate(${x(0) + 10}, ${y(hoy) - 14})`}>
+        <rect width="96" height="22" rx="11" fill={hoy >= UMBRAL ? ROJO : AZUL} />
+        <text x="48" y="15" textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff">R hoy = {hoy.toFixed(2)}</text>
+      </g>
+      {[[7, en7], [FUTURO, en14]].map(([t, v]) => (
+        <g key={t}>
+          <circle cx={x(t)} cy={y(v)} r="3.5" fill="#fff" stroke={AZUL} strokeWidth="2" />
+          <text x={x(t) - (t === FUTURO ? 4 : 0)} y={y(v) - 9} textAnchor={t === FUTURO ? 'end' : 'middle'} fontSize="10" fontWeight="600" fill="#64748B">{v.toFixed(2)}</text>
+        </g>
       ))}
+
+      {/* Eje X */}
+      <text x={x(-PASADO)} y={H - 10} textAnchor="start" fontSize="10" fill="#94A3B8">hace {PASADO} días</text>
+      <text x={x(0)} y={H - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569">hoy</text>
+      <text x={x(7)} y={H - 10} textAnchor="middle" fontSize="10" fill="#94A3B8">en 7 días</text>
+      <text x={x(FUTURO)} y={H - 10} textAnchor="end" fontSize="10" fill="#94A3B8">en {FUTURO} días</text>
+
+      {/* Lectura al pasar el mouse */}
+      {hover !== null && (() => {
+        const v = R(hover);
+        const hx = x(hover);
+        const izquierda = hx > W - 150;
+        return (
+          <g pointerEvents="none">
+            <line x1={hx} x2={hx} y1={PT} y2={H - PB} stroke="#334155" strokeOpacity="0.25" />
+            <circle cx={hx} cy={y(v)} r="4" fill="#fff" stroke="#334155" strokeWidth="2" />
+            <g transform={`translate(${izquierda ? hx - 128 : hx + 10}, ${Math.max(PT, y(v) - 40)})`}>
+              <rect width="118" height="36" rx="8" fill="#0F172A" opacity="0.88" />
+              <text x="10" y="15" fontSize="10" fill="#CBD5E1">{etiquetaDia(hover)}</text>
+              <text x="10" y="29" fontSize="11" fontWeight="700" fill="#fff">R = {v.toFixed(2)} {v >= UMBRAL ? '· alta' : ''}</text>
+            </g>
+          </g>
+        );
+      })()}
     </svg>
   );
 }
@@ -148,7 +239,7 @@ export default function CentroAgente() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi icono={<Bot size={17} />} valor={String(total)} etiqueta="Decisiones tomadas" tono="text-[#2444D8] bg-[#EEF2FF]" />
         <Kpi icono={<Send size={17} />} valor={`${total ? Math.round((autoPublicadas / total) * 100) : 0}%`} etiqueta="Publicadas sin esperar" pista={`${autoPublicadas} de ${total}`} tono="text-green-700 bg-green-50" />
-        <Kpi icono={<PauseCircle size={17} />} valor={String(retenidas)} etiqueta="Retenidas para revisión" tono="text-red-500 bg-red-50/70" />
+        <Kpi icono={<PauseCircle size={17} />} valor={String(retenidas)} etiqueta="Retenidas para revisión" tono="text-[#E5675F] bg-[#E5675F]/10" />
         <Kpi icono={<ThumbsUp size={17} />} valor={revisadas ? `${acuerdo}%` : '—'} etiqueta="Acuerdo con el docente" pista={`${revisadas} revisadas`} tono="text-violet-600 bg-violet-50" />
       </div>
 
@@ -181,13 +272,13 @@ export default function CentroAgente() {
             <p className="text-[12px] text-slate-500 mb-4">Lo que el docente hizo con los mensajes retenidos</p>
             <div className="flex h-2 rounded-full overflow-hidden bg-slate-100">
               {revisadas + pendientes > 0 && <>
-                <div className="bg-[#86CBA0]" style={{ width: `${(coincide / (revisadas + pendientes)) * 100}%` }} />
-                <div className="bg-[#EBA49D]" style={{ width: `${(corrige / (revisadas + pendientes)) * 100}%` }} />
+                <div className="bg-[#52A67C]" style={{ width: `${(coincide / (revisadas + pendientes)) * 100}%` }} />
+                <div className="bg-[#E5675F]" style={{ width: `${(corrige / (revisadas + pendientes)) * 100}%` }} />
               </>}
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
               <div className="flex items-center gap-1.5 text-slate-600"><CheckCircle2 size={14} className="text-green-600" /> Coincidió: <b className="text-slate-900">{coincide}</b></div>
-              <div className="flex items-center gap-1.5 text-slate-600"><XCircle size={14} className="text-[#E08B83]" /> Corrigió: <b className="text-slate-900">{corrige}</b></div>
+              <div className="flex items-center gap-1.5 text-slate-600"><XCircle size={14} className="text-[#E5675F]" /> Corrigió: <b className="text-slate-900">{corrige}</b></div>
               <div className="flex items-center gap-1.5 text-slate-600"><Clock size={14} className="text-slate-400" /> Pendientes: <b className="text-slate-900">{pendientes}</b></div>
             </div>
             <p className="mt-4 rounded-xl bg-[#F6F8FD] px-3.5 py-2.5 text-[12px] text-slate-600 leading-relaxed flex gap-2">
@@ -225,8 +316,9 @@ export default function CentroAgente() {
                 <div className="mt-5">
                   <CurvaR eventos={sel.eventos} tau={metricas.tau_dias} />
                   <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#EBA49D]" /> Falta registrada</span>
-                    <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#6F86E8]" /> R(t) = Σ s · e^(−Δt/τ)</span>
+                    <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#E5675F]" /> Falta registrada</span>
+                    <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#4D6BFE]" /> R(t) = Σ s · e^(−Δt/τ)</span>
+                    <span className="flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-[#4D6BFE]/70" /> Si no vuelve a fallar</span>
                     <span>{sel.incidentes} {sel.incidentes === 1 ? 'incidente' : 'incidentes'} en total</span>
                   </div>
                   <p className="mt-3 text-[12px] text-slate-600 leading-relaxed">
@@ -275,10 +367,10 @@ export default function CentroAgente() {
                     </div>
                   </div>
                   <span><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${ACCIONES[d.accion]?.clase}`}>{ACCIONES[d.accion]?.nombre || d.accion}</span></span>
-                  <span className="text-[13px] font-semibold" style={{ color: d.score_toxicidad >= 0.7 ? '#D2544C' : d.score_toxicidad >= 0.4 ? '#B7791F' : '#15803D' }}>{Math.round(d.score_toxicidad * 100)}%</span>
+                  <span className="text-[13px] font-semibold" style={{ color: d.score_toxicidad >= 0.7 ? '#E5675F' : d.score_toxicidad >= 0.4 ? '#B7791F' : '#15803D' }}>{Math.round(d.score_toxicidad * 100)}%</span>
                   <span className="text-[12px]">
                     {d.decision_docente === 'RECHAZADO' && <span className="inline-flex items-center gap-1 text-green-700"><CheckCircle2 size={14} /> Coincidió</span>}
-                    {d.decision_docente === 'APROBADO' && <span className="inline-flex items-center gap-1 text-[#D2544C]"><XCircle size={14} /> Corrigió</span>}
+                    {d.decision_docente === 'APROBADO' && <span className="inline-flex items-center gap-1 text-[#E5675F]"><XCircle size={14} /> Corrigió</span>}
                     {d.decision_docente === null && (RETENIDAS.includes(d.accion)
                       ? <span className="inline-flex items-center gap-1 text-slate-400"><Clock size={14} /> Pendiente</span>
                       : <span className="text-slate-300">No aplica</span>)}
