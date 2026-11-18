@@ -1,5 +1,6 @@
 import { respuestaMock, type RespuestaAgente } from '../mocks/agente';
 import { decisionesMock, metricasMock, type DecisionAgente, type MetricasAgente } from '../mocks/centro';
+import { adaptarAnalisis, adaptarDecisiones, calcularMetricas } from './agenteAdaptador';
 const API_BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL) ? String(import.meta.env.VITE_API_URL) : `http://${window.location.hostname || 'localhost'}:8000`;
 
 const ACCESS_TOKEN_KEY = 'rau_access_token';
@@ -162,19 +163,38 @@ const USE_MOCKS = String(import.meta.env?.VITE_USE_MOCKS || '') === 'true';
 
 export async function analizarMensaje(texto: string, texto_padre?: string, curso_id = 0): Promise<RespuestaAgente> {
   if (USE_MOCKS) return new Promise(r => setTimeout(() => r(respuestaMock(texto)), 400));
-  return request('/agente/analizar', { method: 'POST', body: JSON.stringify({ texto, texto_padre, curso_id }) });
+  void curso_id;
+  const res = await request('/agente/analizar', { method: 'POST', body: JSON.stringify({ texto, texto_padre: texto_padre || null }) });
+  return adaptarAnalisis(res);
 }
 
 export async function getDecisionesAgente(limit = 50): Promise<DecisionAgente[]> {
   if (USE_MOCKS) return new Promise(r => setTimeout(() => r(decisionesMock.slice(0, limit)), 300));
-  const res = await request(`/agente/decisiones?limit=${limit}`);
-  return res?.data ?? res ?? [];
+  const [decisiones, historial] = await Promise.all([
+    request(`/moderacion/decisiones-agente?limit=${Math.min(Math.max(limit, 1), 100)}`),
+    request('/moderacion/historial?limit=100').catch(() => null),
+  ]);
+  return adaptarDecisiones(decisiones, historial);
+}
+
+/** Decisiones reales del agente indexadas por publicación (para enriquecer Moderación). */
+export async function getDecisionesPorPublicacion(): Promise<Record<number, any>> {
+  if (USE_MOCKS) return {};
+  try {
+    const res = await request('/moderacion/decisiones-agente?limit=100');
+    const lista = res?.data ?? [];
+    const mapa: Record<number, any> = {};
+    // Vienen de la más reciente a la más antigua: se conserva la más reciente
+    for (const d of lista) if (d?.publicacion_id && !mapa[d.publicacion_id]) mapa[d.publicacion_id] = d;
+    return mapa;
+  } catch {
+    return {};
+  }
 }
 
 export async function getMetricasAgente(): Promise<MetricasAgente> {
   if (USE_MOCKS) return new Promise(r => setTimeout(() => r(metricasMock), 300));
-  const res = await request('/agente/metricas');
-  return res?.data ?? res;
+  return calcularMetricas(await getDecisionesAgente(100));
 }
 
 const apiDefault = {
@@ -212,6 +232,7 @@ const apiDefault = {
   analizarMensaje,
   getDecisionesAgente,
   getMetricasAgente,
+  getDecisionesPorPublicacion,
 };
 
 export default apiDefault;
