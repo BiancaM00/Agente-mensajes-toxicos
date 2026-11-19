@@ -1,4 +1,4 @@
-﻿"""AplicaciÃ³n principal FastAPI."""
+"""Aplicación principal FastAPI."""
 
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI
@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     Startup y shutdown events.
     """
     # Startup
-    print("ðŸš€ Iniciando aplicaciÃ³n FastAPI...")
+    print("🚀 Iniciando aplicación FastAPI...")
     
     # Precargar modelos del agente
     try:
@@ -43,28 +43,28 @@ async def lifespan(app: FastAPI):
     # Crear tablas si no existen
     try:
         Base.metadata.create_all(bind=engine)
-        print("âœ… Base de datos inicializada")
+        print("✅ Base de datos inicializada")
     except Exception as e:
-        print(f"âš ï¸ Error al inicializar BD: {e}")
+        print(f"⚠️ Error al inicializar BD: {e}")
     
-    # Crear usuario admin automÃ¡ticamente
+    # Crear usuario admin automáticamente
     try:
         db = SessionLocal()
         crear_usuario_admin(db)
         db.close()
     except Exception as e:
-        print(f"âš ï¸ Error al crear usuario admin: {e}")
+        print(f"⚠️ Error al crear usuario admin: {e}")
     
     yield
     
     # Shutdown
-    print("ðŸ›‘ Deteniendo aplicaciÃ³n...")
+    print("🛑 Deteniendo aplicación...")
 
 
-# Crear aplicaciÃ³n FastAPI
+# Crear aplicación FastAPI
 app = FastAPI(
-    title="Sistema Inteligente de ModeraciÃ³n - RAU",
-    description="API REST para detecciÃ³n de mensajes tÃ³xicos en foros acadÃ©micos",
+    title="Sistema Inteligente de Moderación - RAU",
+    description="API REST para detección de mensajes tóxicos en foros académicos",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -73,7 +73,7 @@ app = FastAPI(
 )
 
 
-# â”€â”€â”€ Configurar CORS (DEBE SER PRIMERO) â”€â”€â”€
+# ─── Configurar CORS (DEBE SER PRIMERO) ───
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS.split(","),
@@ -84,14 +84,14 @@ app.add_middleware(
     max_age=3600,
 )
 
-# â”€â”€â”€ Trusted Host â”€â”€â”€
+# ─── Trusted Host ───
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["localhost", "127.0.0.1", "*"]
 )
 
 
-# â”€â”€â”€ Routers â”€â”€â”€
+# ─── Routers ───
 app.include_router(auth_router)
 app.include_router(foros_router)
 app.include_router(moderacion_router)
@@ -101,7 +101,7 @@ app.include_router(cursos_router)
 app.include_router(agente_router)
 
 
-# â”€â”€â”€ Frontend estÃ¡tico solo en producciÃ³n â”€â”€â”€
+# ─── Frontend estático solo en producción ───
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 serve_frontend_from_backend = settings.APP_ENV == "production"
 
@@ -114,7 +114,7 @@ if serve_frontend_from_backend and frontend_dist.exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_frontend(full_path: str):
-        """Servir archivos estÃ¡ticos del frontend (SPA fallback a index.html)."""
+        """Servir archivos estáticos del frontend (SPA fallback a index.html)."""
         if full_path.startswith((
             "auth",
             "foros",
@@ -138,7 +138,7 @@ if serve_frontend_from_backend and frontend_dist.exists():
 else:
     @app.get("/", tags=["Health"])
     async def root():
-        """Ruta raÃ­z en desarrollo (frontend separado en puerto 5173)."""
+        """Ruta raíz en desarrollo (frontend separado en puerto 5173)."""
         return {
             "success": True,
             "message": "RAU API running",
@@ -148,7 +148,7 @@ else:
         }
 
 
-# â”€â”€â”€ Rutas auxiliares â”€â”€â”€ 
+# ─── Rutas auxiliares ─── 
 @app.get("/health", tags=["Health"], include_in_schema=True)
 async def health_check():
     """Health check endpoint."""
@@ -161,11 +161,11 @@ async def health_check():
 
 @app.get("/info", tags=["Info"])
 async def get_info():
-    """InformaciÃ³n sobre la aplicaciÃ³n."""
+    """Información sobre la aplicación."""
     return {
-        "name": "Sistema Inteligente de ModeraciÃ³n en Foros AcadÃ©micos",
-        "organization": "Red AcadÃ©mica Universitaria (RAU)",
-        "team": "Universidad TecnolÃ³gica de BolÃ­var - IngenierÃ­a de Software",
+        "name": "Sistema Inteligente de Moderación en Foros Académicos",
+        "organization": "Red Académica Universitaria (RAU)",
+        "team": "Universidad Tecnológica de Bolívar - Ingeniería de Software",
         "version": "0.1.0",
         "stack": {
             "backend": "Python FastAPI",
@@ -174,16 +174,16 @@ async def get_info():
             "toxicity_analysis": f"{settings.AI_PROVIDER}",
         },
         "features": [
-            "AutenticaciÃ³n con JWT",
-            "AnÃ¡lisis automÃ¡tico de toxicidad",
-            "ModeraciÃ³n por roles",
+            "Autenticación con JWT",
+            "Análisis automático de toxicidad",
+            "Moderación por roles",
             "Sistema de notificaciones",
-            "Dashboard de mÃ©tricas",
+            "Dashboard de métricas",
         ]
     }
 
 
-# â”€â”€â”€ Manejo de errores global â”€â”€â”€
+# ─── Manejo de errores global ───
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Manejador global de excepciones."""
