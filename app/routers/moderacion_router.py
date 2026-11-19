@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
-from app.models import Usuario, Publicacion, CasoModeracion, Hilo, Foro, DecisionAgente, Matricula, Curso
+from app.models import Usuario, Publicacion, CasoModeracion, Hilo, Foro, DecisionAgente, Matricula, Curso, EstadoAgente
 from app.models.publicacion import EstadoPublicacion
 from app.models.moderacion import EstadoModeracion
 from app.middleware import require_roles
@@ -137,6 +137,20 @@ async def aprobar_publicacion(
         caso.observacion = decision_data.observacion
         caso.resuelto_en = datetime.now(timezone.utc)
     
+    # Reducir ligeramente la reincidencia cuando se aprueba el mensaje.
+    hilo = db.query(Hilo).filter(Hilo.id == publicacion.hilo_id).first()
+    if hilo:
+        foro = db.query(Foro).filter(Foro.id == hilo.foro_id).first()
+        if foro:
+            estado_agente = db.query(EstadoAgente).filter(
+                EstadoAgente.usuario_id == publicacion.autor_id,
+                EstadoAgente.curso_id == foro.curso_id,
+            ).first()
+            if estado_agente:
+                estado_agente.reincidencia = max(
+                    0.0, estado_agente.reincidencia * 0.90
+                )
+
     # Notificar al autor
     NotificacionService.notificar_caso_resuelto(
         db,
@@ -251,6 +265,20 @@ async def rechazar_publicacion(
         caso.observacion = decision_data.observacion or "Contenido inapropiado"
         caso.resuelto_en = datetime.now(timezone.utc)
     
+    # Reducir ligeramente la reincidencia cuando se aprueba el mensaje.
+    hilo = db.query(Hilo).filter(Hilo.id == publicacion.hilo_id).first()
+    if hilo:
+        foro = db.query(Foro).filter(Foro.id == hilo.foro_id).first()
+        if foro:
+            estado_agente = db.query(EstadoAgente).filter(
+                EstadoAgente.usuario_id == publicacion.autor_id,
+                EstadoAgente.curso_id == foro.curso_id,
+            ).first()
+            if estado_agente:
+                estado_agente.reincidencia = max(
+                    0.0, estado_agente.reincidencia * 0.90
+                )
+
     # Notificar al autor
     NotificacionService.notificar_caso_resuelto(
         db,
@@ -496,4 +524,5 @@ async def obtener_decisiones_agente(
             "offset": offset,
         },
     }
+
 
