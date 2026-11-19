@@ -318,7 +318,7 @@ async def obtener_metricas_globales(
     current_user: Usuario = Depends(require_roles(["DOCENTE", "ADMIN_INSTITUCIONAL"])),
 ):
     from sqlalchemy import func, desc
-    from app.models import Curso, Matricula, EvaluacionToxicidad
+    from app.models import Curso, Matricula, DecisionAgente
     
     is_admin = current_user.rol == "ADMIN_INSTITUCIONAL"
 
@@ -326,7 +326,7 @@ async def obtener_metricas_globales(
         total_evaluadas = db.query(Publicacion).count()
         total_cursos = db.query(Curso).filter(Curso.activo == True).count()
         total_casos = db.query(CasoModeracion).count()
-        avg_score = db.query(func.avg(EvaluacionToxicidad.score)).scalar() or 0.0
+        avg_score = db.query(func.avg(DecisionAgente.score)).scalar() or 0.0
         
         incidentes_query = db.query(
             Curso.nombre, func.count(CasoModeracion.id).label('total')
@@ -348,7 +348,7 @@ async def obtener_metricas_globales(
         total_cursos = db.query(Curso).filter(Curso.id.in_(cursos_docente), Curso.activo == True).count()
         total_evaluadas = db.query(Publicacion).join(Hilo).join(Foro).filter(Foro.curso_id.in_(cursos_docente)).count()
         total_casos = db.query(CasoModeracion).join(Publicacion, Publicacion.id == CasoModeracion.publicacion_id).join(Hilo).join(Foro).filter(Foro.curso_id.in_(cursos_docente)).count()
-        avg_score = db.query(func.avg(EvaluacionToxicidad.score)).join(Publicacion, Publicacion.id == EvaluacionToxicidad.publicacion_id).join(Hilo).join(Foro).filter(Foro.curso_id.in_(cursos_docente)).scalar() or 0.0
+        avg_score = db.query(func.avg(DecisionAgente.score)).join(Publicacion, DecisionAgente.publicacion_id == Publicacion.id).join(Hilo, Publicacion.hilo_id == Hilo.id).join(Foro, Hilo.foro_id == Foro.id).filter(Foro.curso_id.in_(cursos_docente)).scalar() or 0.0
         
         incidentes_query = db.query(
             Curso.nombre, func.count(CasoModeracion.id).label('total')
@@ -496,3 +496,4 @@ async def obtener_decisiones_agente(
             "offset": offset,
         },
     }
+
