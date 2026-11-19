@@ -59,5 +59,8 @@ async def analizar_mensaje(
             "costo_esperado": decision.costo_esperado,
             "reincidencia": decision.reincidencia,
             "explicacion": decision.explicacion,
+            "fragmentos": decision.nlp.fragmentos,
+            "modelo": decision.nlp.modelo,
         },
     }
+
