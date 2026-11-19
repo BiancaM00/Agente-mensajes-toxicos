@@ -211,6 +211,7 @@ export default function Laboratorio() {
                   <dd className="font-display text-[20px] font-semibold text-slate-900">{resultado.reincidencia.toFixed(2)}</dd>
                 </div>
               </dl>
+              <p className="mt-3 text-[11px] leading-relaxed text-slate-400">En el Laboratorio no se usa el historial de ningún estudiante: R solo incluye este mensaje. La memoria real se ve en el Centro del Agente.</p>
             </section>
 
             {/* Probabilidades */}

@@ -103,6 +103,8 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
     return userRole === 'estudiante' ? 'courses' : 'overview';
   });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Pestaña desde la que se abrió el perfil, para poder volver a ella
+  const [tabAntesDePerfil, setTabAntesDePerfil] = useState<typeof activeTab>('overview');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [activeForum, setActiveForum] = useState<Forum | null>(null);
   const [showNewForumModal, setShowNewForumModal] = useState(false);
@@ -217,7 +219,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
   const tabTitles: Record<string, [string, string]> = {
     overview: ['Resumen institucional', 'Así está la convivencia en tus foros hoy'],
     messages: ['Moderación', 'Mensajes que el agente retuvo para tu decisión'],
-    agente: ['Centro del Agente', 'Qué decidió el agente, qué recuerda y cómo aprende'],
+    agente: ['Centro del Agente', 'Qué decidió el agente, qué recuerda y qué retroalimentación recibe'],
     lab: ['Laboratorio del Agente', 'Mira paso a paso cómo el agente analiza y decide'],
     courses: ['Cursos y foros', 'Entra a un curso para participar en sus foros'],
     status: ['Mi convivencia', 'Cómo ha evaluado el agente tus mensajes'],
@@ -786,7 +788,11 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                 )}
               </div>
             )}
-            <button onClick={() => setActiveTab('profile' as any)} className="flex items-center gap-3 pl-2 hover:opacity-80 transition-opacity" title="Mi perfil">
+            <button onClick={() => {
+              if (activeTab === 'profile') { setActiveTab(tabAntesDePerfil); return; }
+              setTabAntesDePerfil(activeTab);
+              setActiveTab('profile');
+            }} className="flex items-center gap-3 pl-2 hover:opacity-80 transition-opacity" title="Mi perfil">
               <div className="text-right hidden sm:block">
                 <div className="text-[13px] font-semibold text-slate-900">{nombreUsuario}</div>
                 <div className="text-[11px] text-slate-400">{userRole === 'admin' ? 'Administración' : userRole === 'docente' ? 'Docente' : 'Estudiante'} · Ver perfil</div>
@@ -1064,7 +1070,7 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
                             </button>
                           </div>
                         </div>
-                        <p className="mt-3 text-[11px] text-slate-400">Tu decisión queda registrada y el agente aprende de ella para ajustar sus próximas decisiones.</p>
+                        <p className="mt-3 text-[11px] text-slate-400">Tu decisión queda registrada como retroalimentación del agente.</p>
                       </div>
                     </motion.div>
                   ); })
@@ -1354,6 +1360,11 @@ export default function Dashboard({ userRole, onLogout }: DashboardProps) {
 
           {activeTab === 'profile' && (
              <motion.div key="profile" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <div className="max-w-xl mx-auto mb-4">
+                  <button onClick={() => setActiveTab(tabAntesDePerfil)} className="inline-flex items-center gap-2 text-[13px] font-medium text-slate-500 hover:text-[#2444D8] transition-colors">
+                    <ArrowLeft size={14} /> Volver
+                  </button>
+                </div>
                 <div className="max-w-xl mx-auto rounded-3xl bg-white p-8 md:p-10 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
                    <div className="flex flex-col items-center text-center">
                      <Avatar name={nombreUsuario || userRole || 'U'} size={80} />

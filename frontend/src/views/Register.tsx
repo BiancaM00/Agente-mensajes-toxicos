@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Eye, EyeOff, Loader2, ArrowLeft, ArrowRight, ShieldCheck, GraduationCap, BookOpen } from 'lucide-react';
-import { HeroIllustration } from '../components/ui';
+import { HeroIllustration, MensajeCampo, AvisoError, INPUT_ERROR, textoDeError } from '../components/ui';
 import React, { useState } from 'react';
 
 interface RegisterProps {
@@ -20,12 +20,26 @@ export default function Register({ type, onNavigate, onRegister }: RegisterProps
     confirmPassword: ''
   });
 
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const [errorGeneral, setErrorGeneral] = useState('');
+
+  const validar = () => {
+    const e: Record<string, string> = {};
+    if (formData.fullName.trim().length < 3) e.fullName = 'Escribe tu nombre completo (mínimo 3 letras).';
+    if (!formData.email.trim()) e.email = 'Escribe tu correo electrónico.';
+    else if (!/^\S+@\S+\.\S+$/.test(formData.email.trim())) e.email = 'Revisa el correo: debe tener la forma nombre@rau.edu.';
+    if (type === 'teacher' && formData.teacherCode.trim().length < 3) e.teacherCode = 'Escribe tu código de docente.';
+    if (formData.password.length < 8) e.password = 'Mínimo 8 caracteres.';
+    if (!formData.confirmPassword) e.confirmPassword = 'Repite la contraseña.';
+    else if (formData.password !== formData.confirmPassword) e.confirmPassword = 'Las contraseñas no coinciden.';
+    setErrores(e);
+    return Object.keys(e).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert("Las contraseñas no coinciden");
-      return;
-    }
+    setErrorGeneral('');
+    if (!validar()) return;
     setIsLoading(true);
     (async () => {
       try {
@@ -46,7 +60,7 @@ export default function Register({ type, onNavigate, onRegister }: RegisterProps
         onRegister();
       } catch (err: any) {
         console.error('Registration error', err);
-        alert(err?.detail || err?.message || 'Error al registrar');
+        setErrorGeneral(textoDeError(err, 'No se pudo crear la cuenta. Inténtalo de nuevo.'));
       } finally {
         setIsLoading(false);
       }
@@ -55,6 +69,7 @@ export default function Register({ type, onNavigate, onRegister }: RegisterProps
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrores(x => ({ ...x, [e.target.name]: '' }));
   };
 
   const inputCls = "w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10 transition";
@@ -101,21 +116,24 @@ export default function Register({ type, onNavigate, onRegister }: RegisterProps
             <p className="mt-1 text-[14px] text-slate-500">Completa el formulario para crear tu cuenta institucional.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div>
               <label className={labelCls}>Nombre completo</label>
-              <input required name="fullName" type="text" value={formData.fullName} onChange={handleChange} placeholder="Ej. Juan Pérez" className={inputCls} />
+              <input name="fullName" type="text" value={formData.fullName} onChange={handleChange} placeholder="Ej. Juan Pérez" className={`${inputCls} ${errores.fullName ? INPUT_ERROR : ''}`} />
+              <MensajeCampo texto={errores.fullName} />
             </div>
 
             <div>
               <label className={labelCls}>{type === 'student' ? 'Correo electrónico' : 'Correo electrónico institucional'}</label>
-              <input required name="email" type="email" value={formData.email} onChange={handleChange} placeholder="example@rau.com" className={inputCls} />
+              <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="nombre@rau.edu" className={`${inputCls} ${errores.email ? INPUT_ERROR : ''}`} />
+              <MensajeCampo texto={errores.email} />
             </div>
 
             {type === 'teacher' && (
               <div>
                 <label className={labelCls}>Código de docente</label>
-                <input required name="teacherCode" type="text" value={formData.teacherCode} onChange={handleChange} placeholder="ID-XXXX-2026" className={inputCls} />
+                <input name="teacherCode" type="text" value={formData.teacherCode} onChange={handleChange} placeholder="ID-XXXX-2026" className={`${inputCls} ${errores.teacherCode ? INPUT_ERROR : ''}`} />
+                <MensajeCampo texto={errores.teacherCode} />
               </div>
             )}
 
@@ -123,17 +141,21 @@ export default function Register({ type, onNavigate, onRegister }: RegisterProps
               <div>
                 <label className={labelCls}>Contraseña</label>
                 <div className="relative">
-                  <input required name="password" min={8} type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} placeholder="••••••••" className={inputCls + ' pr-11'} />
+                  <input name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} placeholder="••••••••" className={`${inputCls} pr-11 ${errores.password ? INPUT_ERROR : ''}`} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-accent">
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                <MensajeCampo texto={errores.password} />
               </div>
               <div>
                 <label className={labelCls}>Confirmar</label>
-                <input required name="confirmPassword" type={showPassword ? "text" : "password"} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" className={inputCls} />
+                <input name="confirmPassword" type={showPassword ? "text" : "password"} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" className={`${inputCls} ${errores.confirmPassword ? INPUT_ERROR : ''}`} />
+                <MensajeCampo texto={errores.confirmPassword} />
               </div>
             </div>
+
+            <AvisoError texto={errorGeneral} />
 
             <p className="text-[12px] text-slate-400 leading-normal">
               Al registrarte, aceptas nuestros lineamientos de convivencia digital y ética académica.

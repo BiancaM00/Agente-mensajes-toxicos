@@ -32,7 +32,7 @@ export const ejemplosDemo: Array<{ etiqueta: string; texto: string; padre?: stri
     },
   },
   {
-    etiqueta: 'Insulto (reincidente)',
+    etiqueta: 'Insulto',
     texto: 'Eso es una estupidez, eres un idiota',
     padre: 'Creo que A* no siempre es óptimo si la heurística sobreestima el costo',
     respuesta: {

@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Eye, EyeOff, Loader2, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
-import { HeroIllustration } from '../components/ui';
+import { HeroIllustration, MensajeCampo, AvisoError, INPUT_ERROR } from '../components/ui';
 import React, { useState } from 'react';
 
 import { UserRole } from '../App';
@@ -17,10 +17,21 @@ export default function Login({ onNavigate, onLogin }: LoginProps) {
   const [errorMessage, setErrorMessage] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errores, setErrores] = useState<{ email?: string; password?: string }>({});
+
+  const validar = () => {
+    const e: { email?: string; password?: string } = {};
+    if (!email.trim()) e.email = 'Escribe tu correo electrónico.';
+    else if (!/^\S+@\S+\.\S+$/.test(email.trim())) e.email = 'Revisa el correo: debe tener la forma nombre@rau.edu.';
+    if (!password) e.password = 'Escribe tu contraseña.';
+    setErrores(e);
+    return Object.keys(e).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    if (!validar()) return;
     setIsLoading(true);
 
     try {
@@ -70,17 +81,17 @@ export default function Login({ onNavigate, onLogin }: LoginProps) {
             <p className="mt-1 text-[14px] text-slate-500">Por favor, ingrese sus datos de acceso.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div>
               <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Correo electrónico</label>
               <input
-                required
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@rau.com"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10 transition"
+                onChange={(e) => { setEmail(e.target.value); setErrores(x => ({ ...x, email: undefined })); }}
+                placeholder="nombre@rau.edu"
+                className={`w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10 transition ${errores.email ? INPUT_ERROR : ''}`}
               />
+              <MensajeCampo texto={errores.email} />
             </div>
 
             <div>
@@ -90,12 +101,11 @@ export default function Login({ onNavigate, onLogin }: LoginProps) {
               </div>
               <div className="relative">
                 <input
-                  required
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setErrores(x => ({ ...x, password: undefined })); }}
                   placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-12 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10 transition"
+                  className={`w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-12 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10 transition ${errores.password ? INPUT_ERROR : ''}`}
                 />
                 <button
                   type="button"
@@ -105,6 +115,7 @@ export default function Login({ onNavigate, onLogin }: LoginProps) {
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
+              <MensajeCampo texto={errores.password} />
             </div>
 
             <label htmlFor="remember" className="flex items-center gap-2 text-[13px] text-slate-600 cursor-pointer">
@@ -112,9 +123,7 @@ export default function Login({ onNavigate, onLogin }: LoginProps) {
               Recordar sesión
             </label>
 
-            {errorMessage && (
-              <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-2.5 text-[13px] text-red-700">{errorMessage}</div>
-            )}
+            <AvisoError texto={errorMessage} />
 
             <button
               disabled={isLoading}
