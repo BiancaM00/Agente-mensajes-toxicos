@@ -1,0 +1,3 @@
+﻿"Sistema","Accuracy","Precision","Recall","F1","F1_Macro","VP","VN","FP","FN","Latencia_Media_S"
+"Detector original","0,5133","0,8571","0,0769","0,1412","0,4008","6","71","1","72","0,1433"
+"Agente inteligente","0,58","0,8947","0,2179","0,3505","0,5201","17","70","2","61","0,4342"
