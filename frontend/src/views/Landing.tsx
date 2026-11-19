@@ -12,8 +12,8 @@ export default function Landing({ onNavigate }: LandingProps) {
 
   const features = [
     {
-      title: "IA Avanzada",
-      description: "Moderación en tiempo real utilizando algoritmos de vanguardia para un entorno libre de acoso.",
+      title: "Agente moderador",
+      description: "Un agente analiza cada mensaje, recuerda la reincidencia de cada estudiante y elige la acción de menor costo esperado.",
       icon: Sparkles,
       color: "bg-violet-50 text-violet-600",
     },
@@ -230,7 +230,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* Pie */}
       <footer className="py-10 border-t border-slate-200/70 text-center">
         <div className="text-[13px] text-slate-500">© 2026 RAU — Cartagena — Global</div>
-        <p className="text-[11px] text-slate-400 mt-2">Scroll not required — Gemini powered</p>
+        <p className="text-[11px] text-slate-400 mt-2">Agente moderador · Proyecto de Inteligencia Artificial · UTB</p>
       </footer>
     </div>
   );

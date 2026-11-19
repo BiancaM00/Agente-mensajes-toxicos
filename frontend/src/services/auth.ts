@@ -37,18 +37,30 @@ function mapBackendRoleToFrontend(role: string): FrontendRole | null {
 }
 
 export async function loginWithBackend(email: string, password: string): Promise<SessionUser> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    throw new Error('No se pudo conectar con el servidor. Revisa que el backend esté encendido.');
+  }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data?.detail || 'Credenciales inválidas');
+    // Mismo mensaje si falla el correo o la contraseña: no se revela cuál de los dos está mal
+    if (response.status === 401 || response.status === 422) {
+      throw new Error('Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo.');
+    }
+    if (response.status === 403) {
+      throw new Error('Tu usuario está desactivado. Comunícate con el administrador.');
+    }
+    throw new Error(typeof data?.detail === 'string' ? data.detail : 'No se pudo iniciar sesión. Inténtalo de nuevo.');
   }
 
   const payload = decodeJwtPayload(data.access_token);

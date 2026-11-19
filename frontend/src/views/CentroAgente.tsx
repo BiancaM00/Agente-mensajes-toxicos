@@ -283,7 +283,7 @@ export default function CentroAgente() {
             </div>
             <p className="mt-4 rounded-xl bg-[#F6F8FD] px-3.5 py-2.5 text-[12px] text-slate-600 leading-relaxed flex gap-2">
               <Info size={14} className="text-[#2444D8] shrink-0 mt-0.5" />
-              Cuando el docente aprueba un mensaje que el agente retuvo, cuenta como corrección. Con esas correcciones el agente ajusta sus costos para no volver a retener casos parecidos.
+              Si el docente rechaza un mensaje retenido, coincide con el agente; si lo aprueba, cuenta como corrección. Estas respuestas quedan registradas como retroalimentación para evaluar y ajustar el agente.
             </p>
           </div>
         </section>
@@ -323,7 +323,7 @@ export default function CentroAgente() {
                   </div>
                   <p className="mt-3 text-[12px] text-slate-600 leading-relaxed">
                     {sel.reincidencia >= 0.5
-                      ? <>Con R = <b>{sel.reincidencia.toFixed(2)}</b> el agente es más estricto: las acciones permisivas le cuestan (1 + R) veces más, por eso a {sel.estudiante.split(' ')[0]} se le retiene en vez de pedirle reescribir.</>
+                      ? <>Con R = <b>{sel.reincidencia.toFixed(2)}</b> el agente es más estricto con {sel.estudiante.split(' ')[0]}: si un mensaje suyo parece tóxico, las acciones permisivas le cuestan (1 + R) veces más.</>
                       : <>Con R = <b>{sel.reincidencia.toFixed(2)}</b> el efecto es moderado. Si no vuelve a fallar, R baja sola y el agente vuelve a tratarle como a cualquier estudiante.</>}
                   </p>
                 </div>

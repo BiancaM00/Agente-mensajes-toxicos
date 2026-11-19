@@ -3,6 +3,7 @@
  * Gráficos con Recharts + tarjetas e insignias con Tailwind.
  */
 import type { ReactNode } from 'react';
+import { AlertCircle } from 'lucide-react';
 import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell, BarChart, Bar,   LineChart, Line, ReferenceLine,
@@ -338,4 +339,33 @@ export function TextoResaltado({ texto, fragmentos }: { texto: string; fragmento
 export function extraerFragmentos(explicacion: string): string[] {
   const m = (explicacion || '').match(/«([^»]+)»/);
   return m ? m[1].split(',').map(s => s.trim()).filter(Boolean) : [];
+}
+
+/* ─── Mensajes de error de formularios (reemplazan los globos del navegador) ─── */
+export const INPUT_ERROR = 'border-[#E5675F]! bg-[#FDEDEB]/50! focus:ring-[#E5675F]/15!';
+
+export function MensajeCampo({ texto }: { texto?: string }) {
+  if (!texto) return null;
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-[#D2544C]">
+      <AlertCircle size={13} className="shrink-0" /> {texto}
+    </p>
+  );
+}
+
+export function AvisoError({ texto }: { texto?: string }) {
+  if (!texto) return null;
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl bg-[#FDEDEB] px-4 py-3 text-[13px] text-[#B4443D] ring-1 ring-[#E5675F]/25">
+      <AlertCircle size={16} className="mt-0.5 shrink-0 text-[#E5675F]" />
+      <span>{texto}</span>
+    </div>
+  );
+}
+
+/** Convierte el error del backend (texto o lista de FastAPI) en un mensaje legible. */
+export function textoDeError(err: any, porDefecto: string): string {
+  const d = err?.detail;
+  if (Array.isArray(d)) return d[0]?.msg || porDefecto;
+  return d || err?.message || porDefecto;
 }
