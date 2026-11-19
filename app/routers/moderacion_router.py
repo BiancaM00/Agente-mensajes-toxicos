@@ -1,4 +1,4 @@
-﻿"""Router de moderaciÃ³n."""
+"""Router de moderación."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
@@ -12,19 +12,19 @@ from datetime import datetime, timezone
 from pydantic import BaseModel
 from typing import Optional
 
-router = APIRouter(prefix="/moderacion", tags=["ModeraciÃ³n"])
+router = APIRouter(prefix="/moderacion", tags=["Moderación"])
 
 
 class ModerationDecision(BaseModel):
-    """Schema para decisiÃ³n de moderaciÃ³n."""
+    """Schema para decisión de moderación."""
     observacion: Optional[str] = None
 
 
 @router.get(
     "/pendientes",
     status_code=status.HTTP_200_OK,
-    summary="Publicaciones Pendientes de RevisiÃ³n",
-    description="Lista publicaciones que requieren revisiÃ³n por toxicidad."
+    summary="Publicaciones Pendientes de Revisión",
+    description="Lista publicaciones que requieren revisión por toxicidad."
 )
 async def obtener_publicaciones_pendientes(
     curso_id: Optional[int] = None,
@@ -36,10 +36,10 @@ async def obtener_publicaciones_pendientes(
     """
     Lista publicaciones en estado PENDIENTE_REVISION.
     
-    **ParÃ¡metros:**
-    - `curso_id`: Filtrar por curso especÃ­fico (opcional)
-    - `limit`: NÃºmero mÃ¡ximo de resultados (default: 50)
-    - `offset`: Offset para paginaciÃ³n (default: 0)
+    **Parámetros:**
+    - `curso_id`: Filtrar por curso específico (opcional)
+    - `limit`: Número máximo de resultados (default: 50)
+    - `offset`: Offset para paginación (default: 0)
     """
     query = db.query(Publicacion).options(
         joinedload(Publicacion.evaluacion_toxicidad),
@@ -51,7 +51,7 @@ async def obtener_publicaciones_pendientes(
     
     # Si no es ADMIN, solo mostrar sus propios cursos
     if current_user.rol == "DOCENTE" and curso_id:
-        # Verificar que el docente enseÃ±a el curso
+        # Verificar que el docente enseña el curso
         from app.models import Matricula
         matricula = db.query(Matricula).filter(
             Matricula.usuario_id == current_user.id,
@@ -88,8 +88,8 @@ async def obtener_publicaciones_pendientes(
 @router.put(
     "/{pub_id}/aprobar",
     status_code=status.HTTP_200_OK,
-    summary="Aprobar PublicaciÃ³n",
-    description="Aprueba una publicaciÃ³n pendiente de revisiÃ³n."
+    summary="Aprobar Publicación",
+    description="Aprueba una publicación pendiente de revisión."
 )
 async def aprobar_publicacion(
     pub_id: int,
@@ -98,7 +98,7 @@ async def aprobar_publicacion(
     current_user: Usuario = Depends(require_roles(["DOCENTE", "ADMIN_INSTITUCIONAL"])),
 ):
     """
-    Aprueba una publicaciÃ³n y la hace visible.
+    Aprueba una publicación y la hace visible.
     
     - **observacion**: Comentario opcional del moderador
     """
@@ -107,19 +107,19 @@ async def aprobar_publicacion(
     if not publicacion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="PublicaciÃ³n no encontrada"
+            detail="Publicación no encontrada"
         )
     
     if publicacion.estado != EstadoPublicacion.PENDIENTE_REVISION:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La publicaciÃ³n no estÃ¡ en estado PENDIENTE_REVISION"
+            detail="La publicación no está en estado PENDIENTE_REVISION"
         )
     
-    # Actualizar publicaciÃ³n
+    # Actualizar publicación
     publicacion.estado = EstadoPublicacion.APROBADO
     
-    # Actualizar caso de moderaciÃ³n
+    # Actualizar caso de moderación
     caso = db.query(CasoModeracion).filter(
         CasoModeracion.publicacion_id == pub_id
     ).first()
@@ -163,7 +163,7 @@ async def aprobar_publicacion(
     
     return {
         "success": True,
-        "message": "PublicaciÃ³n aprobada correctamente",
+        "message": "Publicación aprobada correctamente",
         "data": {
             "publicacion_id": pub_id,
             "nuevo_estado": EstadoPublicacion.APROBADO
@@ -176,7 +176,7 @@ async def aprobar_publicacion(
     "/{pub_id}/asignar",
     status_code=status.HTTP_200_OK,
     summary="Asignar moderador a caso",
-    description="Asigna al usuario actual como moderador del caso de moderaciÃ³n (self-assign).",
+    description="Asigna al usuario actual como moderador del caso de moderación (self-assign).",
 )
 async def asignar_moderador(
     pub_id: int,
@@ -191,7 +191,7 @@ async def asignar_moderador(
     if not publicacion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="PublicaciÃ³n no encontrada"
+            detail="Publicación no encontrada"
         )
 
     caso = db.query(CasoModeracion).filter(CasoModeracion.publicacion_id == pub_id).first()
@@ -216,8 +216,8 @@ async def asignar_moderador(
 @router.put(
     "/{pub_id}/rechazar",
     status_code=status.HTTP_200_OK,
-    summary="Rechazar PublicaciÃ³n",
-    description="Rechaza una publicaciÃ³n por contenido inapropiado."
+    summary="Rechazar Publicación",
+    description="Rechaza una publicación por contenido inapropiado."
 )
 async def rechazar_publicacion(
     pub_id: int,
@@ -226,28 +226,28 @@ async def rechazar_publicacion(
     current_user: Usuario = Depends(require_roles(["DOCENTE", "ADMIN_INSTITUCIONAL"])),
 ):
     """
-    Rechaza una publicaciÃ³n y oculta su contenido.
+    Rechaza una publicación y oculta su contenido.
     
-    - **observacion**: RazÃ³n del rechazo (opcional pero recomendado)
+    - **observacion**: Razón del rechazo (opcional pero recomendado)
     """
     publicacion = db.query(Publicacion).filter(Publicacion.id == pub_id).first()
     
     if not publicacion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="PublicaciÃ³n no encontrada"
+            detail="Publicación no encontrada"
         )
     
     if publicacion.estado != EstadoPublicacion.PENDIENTE_REVISION:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La publicaciÃ³n no estÃ¡ en estado PENDIENTE_REVISION"
+            detail="La publicación no está en estado PENDIENTE_REVISION"
         )
     
-    # Actualizar publicaciÃ³n
+    # Actualizar publicación
     publicacion.estado = EstadoPublicacion.RECHAZADO
     
-    # Actualizar caso de moderaciÃ³n
+    # Actualizar caso de moderación
     caso = db.query(CasoModeracion).filter(
         CasoModeracion.publicacion_id == pub_id
     ).first()
@@ -277,7 +277,7 @@ async def rechazar_publicacion(
     
     return {
         "success": True,
-        "message": "PublicaciÃ³n rechazada correctamente",
+        "message": "Publicación rechazada correctamente",
         "data": {
             "publicacion_id": pub_id,
             "nuevo_estado": EstadoPublicacion.RECHAZADO
@@ -297,7 +297,7 @@ async def obtener_historial_moderacion(
     current_user: Usuario = Depends(require_roles(["DOCENTE", "ADMIN_INSTITUCIONAL"])),
 ):
     """
-    Obtiene historial de casos de moderaciÃ³n del docente.
+    Obtiene historial de casos de moderación del docente.
     """
     query = db.query(CasoModeracion).options(
         joinedload(CasoModeracion.publicacion).joinedload(Publicacion.autor),
@@ -325,7 +325,7 @@ async def obtener_historial_moderacion(
 @router.get(
     "/metricas-globales",
     status_code=status.HTTP_200_OK,
-    summary="MÃ©tricas Globales de la InstituciÃ³n",
+    summary="Métricas Globales de la Institución",
 )
 async def obtener_metricas_globales(
     db: Session = Depends(get_db),
@@ -510,6 +510,5 @@ async def obtener_decisiones_agente(
             "offset": offset,
         },
     }
-
 
 
