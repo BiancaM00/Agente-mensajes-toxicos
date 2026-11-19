@@ -1,0 +1,51 @@
+﻿repeticion,mensaje,explicacion,latencia_ms
+1,"Hola, gracias por tu ayuda",False,49.03
+1,"Hola, gracias por tu ayuda",True,62.38
+1,Eres un idiota,False,112.57
+1,Eres un idiota,True,88.82
+1,Te voy a golpear,False,48.31
+1,Te voy a golpear,True,118.76
+1,No dejes de molestar a ese estudiante,False,81.36
+1,No dejes de molestar a ese estudiante,True,62.54
+1,Compra con descuento https://ofertas.com,False,62.05
+1,Compra con descuento https://ofertas.com,True,138.44
+2,"Hola, gracias por tu ayuda",False,62.28
+2,"Hola, gracias por tu ayuda",True,49.56
+2,Eres un idiota,False,44.53
+2,Eres un idiota,True,84.65
+2,Te voy a golpear,False,46.28
+2,Te voy a golpear,True,83.88
+2,No dejes de molestar a ese estudiante,False,49.69
+2,No dejes de molestar a ese estudiante,True,50.82
+2,Compra con descuento https://ofertas.com,False,55.23
+2,Compra con descuento https://ofertas.com,True,109.68
+3,"Hola, gracias por tu ayuda",False,49.95
+3,"Hola, gracias por tu ayuda",True,46.42
+3,Eres un idiota,False,50.25
+3,Eres un idiota,True,90.5
+3,Te voy a golpear,False,49.23
+3,Te voy a golpear,True,83.09
+3,No dejes de molestar a ese estudiante,False,54.2
+3,No dejes de molestar a ese estudiante,True,48.91
+3,Compra con descuento https://ofertas.com,False,53.0
+3,Compra con descuento https://ofertas.com,True,111.23
+4,"Hola, gracias por tu ayuda",False,50.71
+4,"Hola, gracias por tu ayuda",True,47.55
+4,Eres un idiota,False,47.11
+4,Eres un idiota,True,81.01
+4,Te voy a golpear,False,46.39
+4,Te voy a golpear,True,90.08
+4,No dejes de molestar a ese estudiante,False,51.15
+4,No dejes de molestar a ese estudiante,True,50.33
+4,Compra con descuento https://ofertas.com,False,53.63
+4,Compra con descuento https://ofertas.com,True,111.98
+5,"Hola, gracias por tu ayuda",False,47.38
+5,"Hola, gracias por tu ayuda",True,53.06
+5,Eres un idiota,False,47.79
+5,Eres un idiota,True,89.5
+5,Te voy a golpear,False,46.71
+5,Te voy a golpear,True,88.93
+5,No dejes de molestar a ese estudiante,False,48.66
+5,No dejes de molestar a ese estudiante,True,49.41
+5,Compra con descuento https://ofertas.com,False,53.88
+5,Compra con descuento https://ofertas.com,True,109.72

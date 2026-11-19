@@ -1,0 +1,31 @@
+﻿numero,mensaje,esperada,predicha,correcto,toxicidad
+1,Gracias por ayudarme con la tarea.,ninguna,ninguna,True,0.0094
+2,Tu argumento necesita más fuentes.,ninguna,ninguna,True,0.0036
+3,Nuestro equipo gana si estudiamos.,ninguna,ninguna,True,0.006
+4,El dinero del proyecto es limitado.,ninguna,ninguna,True,0.034
+5,Consulta https://www.utb.edu.co,ninguna,ninguna,True,0.003
+6,No estoy de acuerdo con tu explicación.,ninguna,ninguna,True,0.0036
+7,Eres un 1d10t4.,insulto,insulto,True,0.815
+8,Eres un i d i o t a.,insulto,insulto,True,0.815
+9,Eres tontoooo.,insulto,insulto,True,0.2043
+10,Eres un 3stup1d0.,insulto,insulto,True,0.8896
+11,Eres un inútil.,insulto,insulto,True,0.363
+12,Eres un 1nút1l.,insulto,insulto,True,0.363
+13,Te voy a golpear.,amenaza,amenaza,True,0.5772
+14,Te voy a g0lp34r.,amenaza,amenaza,True,0.5772
+15,Te voy a m4t4r.,amenaza,amenaza,True,0.4073
+16,T3 v0y 4 m4t4r.,amenaza,amenaza,True,0.2168
+17,Voy a matarte.,amenaza,amenaza,True,0.7656
+18,Te voy a hacer daño.,amenaza,amenaza,True,0.0253
+19,Compra con descuento en https://ofertas.com,spam,spam,True,0.0207
+20,Pr0m0ci0n en https://ofertas.com,spam,spam,True,0.0196
+21,Reclama tu premio en https://promos.com,spam,spam,True,0.0071
+22,Compra en https://ventas.com,spam,spam,True,0.0501
+23,Visita https://a.com https://b.com https://c.com,spam,spam,True,0.0072
+24,Descuentos en https://ofertas.com,spam,spam,True,0.007
+25,Las mujeres no deberían estudiar ingeniería.,odio,odio,True,0.0212
+26,Los inmigrantes son inferiores.,odio,odio,True,0.0268
+27,No admitamos estudiantes extranjeros.,odio,odio,True,0.0182
+28,Todos los inmigrantes son delincuentes.,odio,odio,True,0.0102
+29,Las mujeres son inferiores.,odio,odio,True,0.0942
+30,Expulsen a todos los estudiantes extranjeros.,odio,odio,True,0.0316
